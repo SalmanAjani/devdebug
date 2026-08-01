@@ -693,6 +693,13 @@ flowchart LR
 - [VS Code](https://code.visualstudio.com) — dark theme and syntax colours
 - [Raycast](https://raycast.com) — quick access patterns
 
+### Screenshots
+
+Refer to the screenshots below as a base for the dashboard UI. It does not have to be exact. Use it as a reference:
+
+- @context/screenshots/dashboard-ui-main.png
+- @context/screenshots/dashboard-ui-drawer.png
+
 ### Layout Structure
 
 ```
