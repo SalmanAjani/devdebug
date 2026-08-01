@@ -1,5 +1,6 @@
 import { FolderPlus, Plus, Search } from "lucide-react";
 
+import { SidebarMobileTrigger } from "@/components/layout/SidebarMobileTrigger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -7,6 +8,8 @@ import { Input } from "@/components/ui/input";
 export function Topbar() {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
+      <SidebarMobileTrigger />
+
       <div className="relative mx-auto w-full max-w-xl">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input

@@ -20,3 +20,4 @@ Completed
 
 - Initial Setup - Next.js 16, Tailwind CSS v4, TypeScript configured (Completed)
 - Dashboard UI Phase 1 - shadcn/ui init, /dashboard route, layout shell, dark mode, top bar with search and new entry/collection buttons (Completed)
+- Dashboard UI Phase 2 - collapsible sidebar with brand header, nav links (All Debug Entries, Collections, Pinned, Favorites), user avatar footer with settings, collapse toggle, mobile drawer (Completed)
