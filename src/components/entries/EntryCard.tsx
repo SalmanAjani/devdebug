@@ -1,4 +1,4 @@
-import { Pin, Star } from "lucide-react";
+import { Pin } from "lucide-react";
 
 import { EntryStatusBadge } from "@/components/entries/EntryStatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -22,22 +22,13 @@ export function EntryCard({ entry }: EntryCardProps) {
       <div className="flex items-start justify-between gap-2">
         <EntryStatusBadge status={entry.status} />
 
-        <div className="flex shrink-0 items-center gap-1.5">
-          {entry.isPinned && (
-            <Pin
-              role="img"
-              aria-label="Pinned"
-              className="size-3.5 text-muted-foreground"
-            />
-          )}
-          {entry.isFavorite && (
-            <Star
-              role="img"
-              aria-label="Favorite"
-              className="size-3.5 fill-status-open text-status-open"
-            />
-          )}
-        </div>
+        {entry.isPinned && (
+          <Pin
+            role="img"
+            aria-label="Pinned"
+            className="size-3.5 shrink-0 text-muted-foreground"
+          />
+        )}
       </div>
 
       <div className="flex min-w-0 flex-col gap-1.5">

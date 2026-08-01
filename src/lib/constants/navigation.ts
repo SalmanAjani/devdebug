@@ -1,4 +1,4 @@
-import { Bug, FolderOpen, Pin, Star } from "lucide-react";
+import { Bug, FolderOpen, Pin } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -12,5 +12,4 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
   { label: "All Debug Entries", href: "/dashboard", icon: Bug },
   { label: "Collections", href: "/collections", icon: FolderOpen },
   { label: "Pinned", href: "/pinned", icon: Pin },
-  { label: "Favorites", href: "/favorites", icon: Star },
 ];
