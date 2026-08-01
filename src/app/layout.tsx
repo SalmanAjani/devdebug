@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "DevDebug",
-  description: "DevDebug",
+  description: "An AI-enhanced debugging journal. Never solve the same bug twice.",
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <body>{children}</body>
     </html>
