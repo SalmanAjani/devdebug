@@ -7,8 +7,9 @@ This is phase 3 of 3 for the dashboard UI layout. Use the screenshot referenced 
 ## Requirements for phase 3
 
 - The main area to the right
-- Individual card
-- Recently Viewed Debug Entries
+- Individual cards (3 open 6 resolved) (fill with mock data)
+- Pagination (left and right arrow) besides the grid icons (just above the cards display) to be able to move to older entries
+- Recently Viewed Debug Entries List
 
 ## References
 
