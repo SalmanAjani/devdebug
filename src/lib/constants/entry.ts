@@ -1,7 +1,7 @@
 import { CircleCheck, CircleDot } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import type { EntryStatus, TechCategory } from "@/lib/mock-data";
+import type { EntryStatus, TechCategory } from "@/generated/prisma/enums";
 
 interface StatusConfig {
   label: string;
