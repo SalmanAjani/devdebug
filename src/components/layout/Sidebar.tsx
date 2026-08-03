@@ -4,15 +4,17 @@ import { SidebarContent } from "@/components/layout/SidebarContent";
 import { useSidebar } from "@/components/layout/SidebarProvider";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import type { SidebarCounts } from "@/lib/constants/navigation";
+import type { CurrentUser } from "@/lib/db/user";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   /** Fetched in the dashboard layout — this component runs on the client. */
   counts: SidebarCounts;
+  user: CurrentUser | null;
 }
 
 /** Collapsible sidebar on desktop, slide-in drawer on mobile. */
-export function Sidebar({ counts }: SidebarProps) {
+export function Sidebar({ counts, user }: SidebarProps) {
   const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar();
 
   return (
@@ -25,6 +27,7 @@ export function Sidebar({ counts }: SidebarProps) {
       >
         <SidebarContent
           counts={counts}
+          user={user}
           collapsed={collapsed}
           onToggleCollapse={toggleCollapsed}
         />
@@ -39,6 +42,7 @@ export function Sidebar({ counts }: SidebarProps) {
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SidebarContent
             counts={counts}
+            user={user}
             collapsed={false}
             showCollapseToggle={false}
             onNavigate={() => setMobileOpen(false)}

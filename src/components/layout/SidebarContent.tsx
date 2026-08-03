@@ -12,12 +12,14 @@ import {
   type NavItem,
   type SidebarCounts,
 } from "@/lib/constants/navigation";
-import { MOCK_USER } from "@/lib/mock-data";
+import type { CurrentUser } from "@/lib/db/user";
 import { cn } from "@/lib/utils";
 
 interface SidebarContentProps {
   /** Item counts rendered beside each nav link. */
   counts: SidebarCounts;
+  /** Null on an unseeded database — the footer shows a placeholder. */
+  user: CurrentUser | null;
   /** Icons-only mode. Always false inside the mobile drawer. */
   collapsed: boolean;
   /** Hidden in the mobile drawer, which closes instead of collapsing. */
@@ -77,6 +79,7 @@ function NavLink({ item, count, active, collapsed, onNavigate }: NavLinkProps) {
 
 export function SidebarContent({
   counts,
+  user,
   collapsed,
   showCollapseToggle = true,
   onToggleCollapse,
@@ -133,19 +136,17 @@ export function SidebarContent({
         )}
       >
         <Avatar>
-          {MOCK_USER.image && (
-            <AvatarImage src={MOCK_USER.image} alt={MOCK_USER.name} />
-          )}
-          <AvatarFallback>{MOCK_USER.initials}</AvatarFallback>
+          {user?.image && <AvatarImage src={user.image} alt={user.name} />}
+          <AvatarFallback>{user?.initials ?? "?"}</AvatarFallback>
         </Avatar>
 
         {!collapsed && (
           <div className="flex min-w-0 flex-1 flex-col leading-tight">
             <span className="truncate text-sm font-medium">
-              {MOCK_USER.name}
+              {user?.name ?? "No user"}
             </span>
             <span className="truncate text-xs text-muted-foreground">
-              {MOCK_USER.email}
+              {user?.email ?? "Not signed in"}
             </span>
           </div>
         )}
