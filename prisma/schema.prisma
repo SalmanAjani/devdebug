@@ -1,0 +1,214 @@
+// Prisma 7 — the `prisma-client` generator replaces `prisma-client-js`
+// and requires an explicit `output` path. The connection URL lives in
+// prisma.config.ts, not in the datasource block.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+enum EntryStatus {
+  OPEN
+  RESOLVED
+}
+
+enum TechCategory {
+  FRONTEND
+  BACKEND
+  DATABASE
+  DEVOPS
+  AI
+  OTHER
+}
+
+// ============================================
+// USER
+// ============================================
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  emailVerified        DateTime?
+  name                 String?
+  image                String?
+  password             String? // null for OAuth-only users
+  isPro                Boolean   @default(false)
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  planRenewsAt         DateTime? // handles cancelled-but-still-active subs
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  entries     DebugEntry[]
+  collections Collection[]
+  aiUsage     AiUsage[]
+  accounts    Account[]
+  sessions    Session[]
+
+  @@map("users")
+}
+
+// ============================================
+// NEXTAUTH MODELS
+// ============================================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// DEBUG ENTRY
+// ============================================
+model DebugEntry {
+  id            String      @id @default(cuid())
+  title         String
+  description   String      @db.Text
+  errorMessage  String?     @db.Text // raw error or stack trace
+  rootCause     String      @db.Text
+  solution      String      @db.Text
+  status        EntryStatus @default(OPEN)
+  codeSnippet   String?     @db.Text
+  codeLanguage  String? // for syntax highlighting
+  screenshotUrl String? // R2 object URL
+  isPinned      Boolean     @default(false)
+  viewedAt      DateTime? // powers "Recently viewed"
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags         Tag[]        @relation("EntryTags")
+  technologies Technology[] @relation("EntryTechnologies")
+
+  // Many-to-many with collections
+  collections EntryCollection[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, status])
+  @@index([userId, isPinned])
+  @@index([userId, viewedAt(sort: Desc)])
+  @@map("debug_entries")
+}
+
+// ============================================
+// COLLECTION
+// ============================================
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Many-to-many with entries
+  entries EntryCollection[]
+
+  @@unique([userId, name]) // no duplicate collection names per user
+  @@index([userId])
+  @@map("collections")
+}
+
+// ============================================
+// ENTRY-COLLECTION JOIN TABLE
+// ============================================
+model EntryCollection {
+  entryId      String
+  collectionId String
+  addedAt      DateTime @default(now())
+
+  entry      DebugEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, collectionId])
+  @@index([collectionId])
+  @@map("entry_collections")
+}
+
+// ============================================
+// TAG
+// ============================================
+model Tag {
+  id      String       @id @default(cuid())
+  name    String // display form: "Race Condition"
+  slug    String       @unique // match form: "race-condition"
+  entries DebugEntry[] @relation("EntryTags")
+
+  @@map("tags")
+}
+
+// ============================================
+// TECHNOLOGY
+// ============================================
+model Technology {
+  id       String       @id @default(cuid())
+  name     String // display form: "Next.js"
+  slug     String       @unique // match form: "nextjs"
+  category TechCategory @default(OTHER) // drives badge colour
+  entries  DebugEntry[] @relation("EntryTechnologies")
+
+  @@map("technologies")
+}
+
+// ============================================
+// AI USAGE (free tier quota metering)
+// ============================================
+model AiUsage {
+  id     String @id @default(cuid())
+  userId String
+  period String // "2026-07" — one row per user per month
+  count  Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period])
+  @@map("ai_usage")
+}
