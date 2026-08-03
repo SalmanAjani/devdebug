@@ -7,11 +7,17 @@ import { Bug, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SIDEBAR_NAV_ITEMS, type NavItem } from "@/lib/constants/navigation";
+import {
+  SIDEBAR_NAV_ITEMS,
+  type NavItem,
+  type SidebarCounts,
+} from "@/lib/constants/navigation";
 import { MOCK_USER } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 interface SidebarContentProps {
+  /** Item counts rendered beside each nav link. */
+  counts: SidebarCounts;
   /** Icons-only mode. Always false inside the mobile drawer. */
   collapsed: boolean;
   /** Hidden in the mobile drawer, which closes instead of collapsing. */
@@ -23,12 +29,13 @@ interface SidebarContentProps {
 
 interface NavLinkProps {
   item: NavItem;
+  count: number;
   active: boolean;
   collapsed: boolean;
   onNavigate?: () => void;
 }
 
-function NavLink({ item, active, collapsed, onNavigate }: NavLinkProps) {
+function NavLink({ item, count, active, collapsed, onNavigate }: NavLinkProps) {
   const Icon = item.icon;
 
   const link = (
@@ -44,21 +51,32 @@ function NavLink({ item, active, collapsed, onNavigate }: NavLinkProps) {
       )}
     >
       <Icon className="size-4 shrink-0" />
-      {!collapsed && <span className="truncate">{item.label}</span>}
+      {!collapsed && (
+        <>
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+            {count}
+          </span>
+        </>
+      )}
     </Link>
   );
 
   if (!collapsed) return link;
 
+  // Collapsed hides the badge, so the tooltip carries the count instead.
   return (
     <Tooltip>
       <TooltipTrigger render={link} />
-      <TooltipContent side="right">{item.label}</TooltipContent>
+      <TooltipContent side="right">
+        {item.label} · {count}
+      </TooltipContent>
     </Tooltip>
   );
 }
 
 export function SidebarContent({
+  counts,
   collapsed,
   showCollapseToggle = true,
   onToggleCollapse,
@@ -95,6 +113,7 @@ export function SidebarContent({
             <li key={item.href}>
               <NavLink
                 item={item}
+                count={counts[item.countKey]}
                 collapsed={collapsed}
                 active={
                   pathname === item.href || pathname.startsWith(`${item.href}/`)
