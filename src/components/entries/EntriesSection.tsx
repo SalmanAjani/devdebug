@@ -32,11 +32,17 @@ export function EntriesSection({ entries }: EntriesSectionProps) {
         onNextPage={() => setPage((current) => Math.min(pageCount, current + 1))}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {visibleEntries.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} />
-        ))}
-      </div>
+      {entries.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
+          No debug entries yet. Your first one will show up here.
+        </p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {visibleEntries.map((entry) => (
+            <EntryCard key={entry.id} entry={entry} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

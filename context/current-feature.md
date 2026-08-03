@@ -26,6 +26,14 @@ Show item counts next to the sidebar nav links — All Debug Entries, Collection
 
 <!-- Any extra notes -->
 
+Mock data removal notes:
+
+- `src/lib/mock-data.ts` is deleted. Its last consumer was the sidebar footer, now served by `getCurrentUser()` in `src/lib/db/user.ts`.
+- `getCurrentUser()` returns `null` when the demo user is missing (fresh database, before `npm run db:seed`) instead of throwing. The footer falls back to `?` / "No user" / "Not signed in".
+- Initials are derived in the query layer (`"Demo User"` → `DU`), not stored — the `User` model has no initials column.
+- The entries grid renders an empty state instead of a bare grid when there are no entries.
+- An empty database renders fine, but a *dropped* database does not: every query throws `P2021` until `prisma migrate deploy` recreates the tables. There is no error boundary, so that surfaces as a 500.
+
 Sidebar stats notes:
 
 - Counts are three `prisma.count()` calls in the `(dashboard)` layout, fetched in parallel. Counting in Postgres avoids pulling rows the sidebar never renders.
@@ -44,7 +52,7 @@ Dashboard entries notes:
 - Recently Viewed runs as its own query (`getRecentlyViewedEntries`) rather than reusing the grid rows — it selects four columns and `take`s the limit in Postgres instead of pulling every entry back to filter and slice in JS.
 - `viewedAt` is nullable in the schema, so the query filters `{ not: null }` and the result is narrowed with a type-predicate `filter` — a plain cast would have been a lie the moment the `where` changed.
 - Nothing writes `viewedAt` yet. The list is real data, but it only moves when the seed sets it — the entry detail panel has to stamp `viewedAt` on open for it to become live.
-- `mock-data.ts` survives only for `MOCK_USER` (sidebar). Delete it when auth lands.
+- `mock-data.ts` is gone. The sidebar footer reads the demo user through `getCurrentUser()` in `src/lib/db/user.ts`.
 - Tag chips render `tag.slug`, not `tag.name`, to keep the lowercase `#hydration` look from the mock UI.
 
 Seed data notes:
@@ -53,7 +61,7 @@ Seed data notes:
 - Every record upserts on a stable key, so `npm run db:seed` is safe to re-run: user on `email`, technologies/tags on `slug`, collections on `[userId, name]`, AI usage on `[userId, period]`, entries on hardcoded `seed-entry-*` ids.
 - Relation lists use `set` on update (replaces links) but `connect` on create — `set` is not valid in a Prisma `create` input.
 - Entry/collection joins delete links no longer declared in the seed before upserting the current ones, otherwise removing a collection from an entry would never take effect.
-- `src/lib/mock-data.ts` is now duplicated by the seed. Delete it once the dashboard reads from Prisma.
+- `src/lib/mock-data.ts` was duplicated by the seed and has since been deleted.
 
 ### Prisma 7 reference (carried over from the database setup)
 
@@ -78,3 +86,4 @@ Seed data notes:
 - Dashboard Entries Real Data - dashboard grid reads Neon via new src/lib/db/entries.ts, async server component with force-dynamic, entry components typed off Prisma instead of mock-data, recently viewed deferred (Completed)
 - Dashboard Recent Entries - recently viewed list back below the cards, own getRecentlyViewedEntries query (top 5 by viewedAt desc, nulls excluded), fetched in parallel with the grid, RecentlyViewed typed off Prisma (Completed)
 - Sidebar Stats - item counts beside the sidebar links from Neon: new src/lib/db/collections.ts, entry/pinned counts in entries.ts, shared DEMO_USER_EMAIL in src/lib/db/user.ts, counts fetched in parallel in the async dashboard layout, count in tooltip when collapsed (Completed)
+- Remove Mock Data - deleted src/lib/mock-data.ts, sidebar footer now reads the demo user via getCurrentUser() in src/lib/db/user.ts, null-safe on an unseeded database, empty state for the entries grid (Completed)
