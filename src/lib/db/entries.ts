@@ -1,11 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { DEMO_USER_EMAIL } from "@/lib/db/user";
 import { prisma } from "@/lib/prisma";
-
-/**
- * Authentication ships in a later phase. Until then every query is scoped to
- * the seeded demo user, so swapping in the session user is a one-line change.
- */
-const DEMO_USER_EMAIL = "demo@devdebug.com";
 
 /** Only the columns the entry cards render — the list never needs the long text. */
 const entryListSelect = {
@@ -72,4 +67,18 @@ export async function getRecentlyViewedEntries(
   return entries.filter(
     (entry): entry is RecentlyViewedEntry => entry.viewedAt !== null
   );
+}
+
+/** Total entries, for the sidebar badge. Counted in Postgres, not in JS. */
+export function getEntryCount(): Promise<number> {
+  return prisma.debugEntry.count({
+    where: { user: { email: DEMO_USER_EMAIL } },
+  });
+}
+
+/** Pinned entries only, for the sidebar badge. */
+export function getPinnedEntryCount(): Promise<number> {
+  return prisma.debugEntry.count({
+    where: { user: { email: DEMO_USER_EMAIL }, isPinned: true },
+  });
 }
