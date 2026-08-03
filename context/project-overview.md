@@ -343,7 +343,6 @@ model DebugEntry {
   codeSnippet   String?     @db.Text
   codeLanguage  String? // for syntax highlighting
   screenshotUrl String? // R2 object URL
-  isFavorite    Boolean     @default(false)
   isPinned      Boolean     @default(false)
   viewedAt      DateTime? // powers "Recently viewed"
   createdAt     DateTime    @default(now())
@@ -372,7 +371,6 @@ model Collection {
   id          String   @id @default(cuid())
   name        String
   description String?  @db.Text
-  isFavorite  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
