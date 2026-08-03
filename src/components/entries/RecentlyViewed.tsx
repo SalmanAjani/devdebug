@@ -1,13 +1,10 @@
 import { Clock } from "lucide-react";
 
 import { EntryStatusBadge } from "@/components/entries/EntryStatusBadge";
-import type { DebugEntry } from "@/lib/mock-data";
-
-/** An entry that has actually been opened at least once. */
-export type ViewedEntry = DebugEntry & { viewedAt: string };
+import type { RecentlyViewedEntry } from "@/lib/db/entries";
 
 interface RecentlyViewedProps {
-  entries: ViewedEntry[];
+  entries: RecentlyViewedEntry[];
 }
 
 export function RecentlyViewed({ entries }: RecentlyViewedProps) {
@@ -31,10 +28,10 @@ export function RecentlyViewed({ entries }: RecentlyViewedProps) {
               {entry.title}
             </span>
             <time
-              dateTime={entry.viewedAt}
+              dateTime={entry.viewedAt.toISOString()}
               className="shrink-0 text-xs text-muted-foreground tabular-nums"
             >
-              {entry.viewedAt.slice(0, 10)}
+              {entry.viewedAt.toISOString().slice(0, 10)}
             </time>
           </li>
         ))}

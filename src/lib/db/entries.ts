@@ -43,3 +43,33 @@ export async function getEntries(): Promise<EntryListItem[]> {
     orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
   });
 }
+
+/** The Recently Viewed rows are a single line each — far less than a card needs. */
+const recentlyViewedSelect = {
+  id: true,
+  title: true,
+  status: true,
+  viewedAt: true,
+} satisfies Prisma.DebugEntrySelect;
+
+/** `viewedAt` is nullable in the schema but never null in this result. */
+export type RecentlyViewedEntry = Prisma.DebugEntryGetPayload<{
+  select: typeof recentlyViewedSelect;
+}> & { viewedAt: Date };
+
+/** The most recently opened entries, newest first. Never-opened entries are excluded. */
+export async function getRecentlyViewedEntries(
+  limit: number
+): Promise<RecentlyViewedEntry[]> {
+  const entries = await prisma.debugEntry.findMany({
+    where: { user: { email: DEMO_USER_EMAIL }, viewedAt: { not: null } },
+    select: recentlyViewedSelect,
+    orderBy: { viewedAt: "desc" },
+    take: limit,
+  });
+
+  // The `where` already excludes nulls — this narrows the type without a cast.
+  return entries.filter(
+    (entry): entry is RecentlyViewedEntry => entry.viewedAt !== null
+  );
+}

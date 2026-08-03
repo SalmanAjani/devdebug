@@ -1,13 +1,18 @@
 import { EntriesSection } from "@/components/entries/EntriesSection";
-import { getEntries } from "@/lib/db/entries";
+import { RecentlyViewed } from "@/components/entries/RecentlyViewed";
+import { RECENTLY_VIEWED_LIMIT } from "@/lib/constants/entry";
+import { getEntries, getRecentlyViewedEntries } from "@/lib/db/entries";
 
 // Entries change per request — without this Next prerenders the page at build
 // time and bakes the seed data into the output.
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  // Already ordered by the query — pinned first, then newest.
-  const entries = await getEntries();
+  // Entries come back ordered by the query — pinned first, then newest.
+  const [entries, recentlyViewed] = await Promise.all([
+    getEntries(),
+    getRecentlyViewedEntries(RECENTLY_VIEWED_LIMIT),
+  ]);
 
   const openCount = entries.filter((entry) => entry.status === "OPEN").length;
 
@@ -22,6 +27,8 @@ export default async function DashboardPage() {
       </header>
 
       <EntriesSection entries={entries} />
+
+      <RecentlyViewed entries={recentlyViewed} />
     </div>
   );
 }
