@@ -2,6 +2,8 @@
 
 <!-- Feature Name -->
 
+Dashboard Entries - Real Data
+
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
@@ -12,9 +14,25 @@ Completed
 
 <!-- Goals & requirements -->
 
+Replace the dummy entries data in the dashboard main area (right side) with real data from the Neon database via Prisma. The layout and design already exist — it should look exactly as it does now, 6 cards per page (pagination stays), but sourced from the database instead of `src/lib/mock-data.ts`.
+
+- Create `src/lib/db/entries.ts` with the data fetching functions
+- Fetch entries directly in the server component
+- Do NOT add recently viewed yet — that comes later
+- Reference `context/screenshots/dashboard-ui-main.png` if needed, but the layout/design is already built
+
 ## Notes
 
 <!-- Any extra notes -->
+
+Dashboard entries notes:
+
+- `getEntries()` scopes on `user: { email: DEMO_USER_EMAIL }` because auth has not shipped. Swap that `where` for the session `userId` once NextAuth lands — it is the only place that needs to change.
+- The page needs `export const dynamic = "force-dynamic"`. Without it Next prerenders `/dashboard` as static and bakes the current rows into the build output.
+- Pagination stays client-side (fetch all, slice in `EntriesSection`). Move it server-side via `searchParams` when the entry count justifies it.
+- Recently Viewed was removed from the dashboard page — it was the only remaining consumer of mock entries and the spec defers it. `RecentlyViewed.tsx` is untouched and ready to re-mount once `viewedAt` is added back to `entryListSelect`.
+- `mock-data.ts` survives for `MOCK_USER` (sidebar) and the `RecentlyViewed` types. Delete it when auth and recently-viewed land.
+- Tag chips render `tag.slug`, not `tag.name`, to keep the lowercase `#hydration` look from the mock UI.
 
 Seed data notes:
 
@@ -44,3 +62,4 @@ Seed data notes:
 - Remove Favorites - dropped favorites in favour of pinned: removed sidebar nav link and entry card star icon (no /favorites route existed) (Completed)
 - Database Setup - Prisma 7 + Neon PostgreSQL: schema for all 10 models, init migration, technology seed, Neon driver adapter, prisma.config.ts, db npm scripts, scripts/test-db.ts connectivity check (Completed)
 - Seed Mock Data - rewrote prisma/seed.ts to cover every model: demo user with bcryptjs hash, 18 technologies, 18 tags, 5 collections, 9 entries with hardcoded ids, 12 entry/collection links, AI usage row; fully idempotent; scripts/test-db.ts expanded to print the seeded data and run integrity checks (Completed)
+- Dashboard Entries Real Data - dashboard grid reads Neon via new src/lib/db/entries.ts, async server component with force-dynamic, entry components typed off Prisma instead of mock-data, recently viewed deferred (Completed)

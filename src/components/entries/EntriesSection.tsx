@@ -5,11 +5,11 @@ import { useState } from "react";
 import { EntryCard } from "@/components/entries/EntryCard";
 import { EntryToolbar } from "@/components/entries/EntryToolbar";
 import { ENTRIES_PAGE_SIZE } from "@/lib/constants/entry";
-import type { DebugEntry } from "@/lib/mock-data";
+import type { EntryListItem } from "@/lib/db/entries";
 
 interface EntriesSectionProps {
-  /** Already ordered by the page — pinned first, then newest. */
-  entries: DebugEntry[];
+  /** Already ordered by the query — pinned first, then newest. */
+  entries: EntryListItem[];
 }
 
 /** Toolbar plus the paginated grid of entry cards. */

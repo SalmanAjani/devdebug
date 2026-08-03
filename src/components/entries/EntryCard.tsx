@@ -3,11 +3,11 @@ import { Pin } from "lucide-react";
 import { EntryStatusBadge } from "@/components/entries/EntryStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { TECH_CATEGORY_CLASS } from "@/lib/constants/entry";
-import type { DebugEntry } from "@/lib/mock-data";
+import type { EntryListItem } from "@/lib/db/entries";
 import { cn } from "@/lib/utils";
 
 interface EntryCardProps {
-  entry: DebugEntry;
+  entry: EntryListItem;
 }
 
 /**
@@ -59,10 +59,10 @@ export function EntryCard({ entry }: EntryCardProps) {
 
         {entry.tags.map((tag) => (
           <span
-            key={tag}
+            key={tag.id}
             className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
           >
-            #{tag}
+            #{tag.slug}
           </span>
         ))}
       </div>

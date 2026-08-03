@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { STATUS_CONFIG } from "@/lib/constants/entry";
-import type { EntryStatus } from "@/lib/mock-data";
+import type { EntryStatus } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
 interface EntryStatusBadgeProps {
