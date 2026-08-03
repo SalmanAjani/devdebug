@@ -123,7 +123,6 @@ Full-text search across:
 
 ### E. Core Features
 
-- ⭐ Favorite debug entries
 - 📌 Pin important entries to top
 - 🕐 Recently viewed entries
 - ✍️ Markdown editor
@@ -182,7 +181,6 @@ erDiagram
         text codeSnippet
         string codeLanguage
         string screenshotUrl
-        boolean isFavorite
         boolean isPinned
         datetime viewedAt
         datetime createdAt
@@ -194,7 +192,6 @@ erDiagram
         string id PK
         string name
         string description
-        boolean isFavorite
         datetime createdAt
         datetime updatedAt
         string userId FK
@@ -631,7 +628,7 @@ flowchart LR
         F2["5 collections"]
         F3["Basic search"]
         F4["Markdown + images"]
-        F5["Favorites & pins"]
+        F5["Pins"]
         F6["20 AI summaries/mo"]
     end
 
@@ -655,7 +652,7 @@ flowchart LR
 | Collections                      |     5      | Unlimited |
 | Markdown editor                  |     ✅      |     ✅     |
 | Image uploads                    |     ✅      |     ✅     |
-| Favorites & pinned entries       |     ✅      |     ✅     |
+| Pinned entries       |     ✅      |     ✅     |
 | Search                           |   Basic    |   Full    |
 | AI bug summaries                 | 20 / month | Unlimited |
 | AI root cause                    |     ❌      |     ✅     |
@@ -709,7 +706,7 @@ Refer to the screenshots below as a base for the dashboard UI. It does not have 
 │  ─────────   │  [Status ▾] [Tech ▾] [Collection ▾]          │
 │  🐛 All      │  ──────────────────────────────────────────  │
 │  📁 Collections │                                           │
-│  ⭐ Favorites│  ┌──────────┐ ┌──────────┐ ┌──────────┐     │
+│  ⭐ Pinned │  ┌──────────┐ ┌──────────┐ ┌──────────┐     │
 │  ⚙️ Settings │  │ 🟠 Open   │ │ 🟢 Resolved│ │ 🟢 Resolved│  │
 │              │  │ Hydration│ │ CORS     │ │ N+1      │     │
 │  ─────────   │  │ mismatch │ │ preflight│ │ query    │     │
@@ -733,8 +730,7 @@ Clicking an entry opens a **slide-over panel** on desktop (keeps list context) a
 | ----------------- | ------------------ | -------------- |
 | All Debug Entries | `Bug`              | `/entries`     |
 | Collections       | `FolderOpen`       | `/collections` |
-| Favorites         | `Star`             | `/favorites`   |
-| Settings          | `Settings`         | `/settings`    |
+| Pinned         | `Star`             | `/pinned`   |
 | Collapse toggle   | `PanelLeftClose`   | —              |
 
 ### Technology Badge Colors
@@ -832,7 +828,7 @@ devdebug/
 │   │   │   │   └── new/
 │   │   │   ├── collections/
 │   │   │   │   └── [id]/
-│   │   │   ├── favorites/
+│   │   │   ├── pinned/
 │   │   │   └── settings/
 │   │   ├── api/
 │   │   │   ├── entries/
@@ -889,7 +885,7 @@ devdebug/
 7. [ ] Implement debug entries CRUD with markdown editor
 8. [ ] Add syntax-highlighted code blocks with copy button
 9. [ ] Implement collections CRUD + multi-collection assignment
-10. [ ] Add favorites, pins, and recently viewed
+10. [ ] Add pins and recently viewed
 
 **Phase 3 — Retrieval**
 

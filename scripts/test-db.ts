@@ -1,5 +1,5 @@
 /**
- * Connectivity check for the Neon database.
+ * Connectivity and seed-data check for the Neon database.
  *
  * Run with: npm run db:test
  *
@@ -7,7 +7,10 @@
  * against any branch. Exits non-zero on the first failed check.
  */
 import 'dotenv/config';
+import { EntryStatus } from '@/generated/prisma/enums';
 import { prisma } from '@/lib/prisma';
+
+const DEMO_EMAIL = 'demo@devdebug.com';
 
 function maskedHost(url: string | undefined): string {
   if (!url) return '<unset>';
@@ -16,6 +19,14 @@ function maskedHost(url: string | undefined): string {
   } catch {
     return '<unparseable>';
   }
+}
+
+function statusLabel(status: EntryStatus): string {
+  return status === EntryStatus.RESOLVED ? '● resolved' : '○ open    ';
+}
+
+function formatDate(date: Date | null): string {
+  return date ? date.toISOString().slice(0, 10) : '—';
 }
 
 async function main() {
@@ -49,6 +60,7 @@ async function main() {
     users: await prisma.user.count(),
     debugEntries: await prisma.debugEntry.count(),
     collections: await prisma.collection.count(),
+    entryLinks: await prisma.entryCollection.count(),
     tags: await prisma.tag.count(),
     technologies: await prisma.technology.count(),
     aiUsage: await prisma.aiUsage.count(),
@@ -58,11 +70,114 @@ async function main() {
     console.log(`    ${model.padEnd(13)} ${count}`);
   }
 
-  if (counts.technologies === 0) {
-    console.warn('\n⚠ technologies table is empty — run `npm run db:seed`');
+  // 4. Is the seed data present and are the relations wired up?
+  const user = await prisma.user.findUnique({
+    where: { email: DEMO_EMAIL },
+    include: {
+      collections: {
+        orderBy: { name: 'asc' },
+        include: { _count: { select: { entries: true } } },
+      },
+      aiUsage: { orderBy: { period: 'desc' } },
+      _count: { select: { entries: true } },
+    },
+  });
+
+  if (!user) {
+    console.warn(`\n⚠ no demo user (${DEMO_EMAIL}) — run \`npm run db:seed\``);
+  } else {
+    console.log('\n✔ demo user');
+    console.log(`    ${user.name} <${user.email}>`);
+    console.log(
+      `    plan: ${user.isPro ? 'Pro' : 'Free'}` +
+        ` · password: ${user.password ? 'set' : 'none'}` +
+        ` · verified: ${user.emailVerified ? 'yes' : 'no'}` +
+        ` · entries: ${user._count.entries}`
+    );
+
+    console.log(`\n✔ collections (${user.collections.length})`);
+    for (const c of user.collections) {
+      console.log(
+        `    ${c.name.padEnd(18)} ${String(c._count.entries).padStart(2)} entries` +
+          `  ${c.description ?? ''}`
+      );
+    }
+
+    const entries = await prisma.debugEntry.findMany({
+      where: { userId: user.id },
+      orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        technologies: { orderBy: { name: 'asc' } },
+        tags: { orderBy: { name: 'asc' } },
+        collections: { include: { collection: true } },
+      },
+    });
+
+    const open = entries.filter((e) => e.status === EntryStatus.OPEN).length;
+    const resolved = entries.length - open;
+    const pinned = entries.filter((e) => e.isPinned).length;
+
+    console.log(
+      `\n✔ debug entries (${entries.length}) — ${open} open, ${resolved} resolved, ${pinned} pinned`
+    );
+    for (const e of entries) {
+      const pin = e.isPinned ? '📌' : '  ';
+      console.log(`    ${pin} ${statusLabel(e.status)}  ${e.title}`);
+      console.log(
+        `          tech: ${e.technologies.map((t) => t.name).join(', ') || '—'}` +
+          ` · tags: ${e.tags.map((t) => t.name).join(', ') || '—'}`
+      );
+      console.log(
+        `          collections: ${e.collections.map((c) => c.collection.name).join(', ') || '—'}` +
+          ` · created: ${formatDate(e.createdAt)}` +
+          ` · code: ${e.codeLanguage ?? '—'}`
+      );
+    }
+
+    // Mirrors the dashboard's "Recently viewed" list.
+    const recent = await prisma.debugEntry.findMany({
+      where: { userId: user.id, viewedAt: { not: null } },
+      orderBy: { viewedAt: 'desc' },
+      take: 3,
+      select: { title: true, viewedAt: true, status: true },
+    });
+    console.log('\n✔ recently viewed');
+    for (const e of recent) {
+      console.log(`    ${formatDate(e.viewedAt)}  ${statusLabel(e.status)}  ${e.title}`);
+    }
+
+    console.log('\n✔ ai usage');
+    if (user.aiUsage.length === 0) {
+      console.log('    (none)');
+    }
+    for (const usage of user.aiUsage) {
+      console.log(`    ${usage.period}  ${usage.count} / 20 free summaries used`);
+    }
+
+    // Integrity — catches half-applied seeds and broken relation wiring.
+    const problems: string[] = [];
+    const orphaned = await prisma.debugEntry.count({ where: { userId: { not: user.id } } });
+    if (orphaned > 0) problems.push(`${orphaned} entrie(s) not owned by the demo user`);
+
+    for (const e of entries) {
+      if (e.technologies.length === 0) problems.push(`"${e.title}" has no technologies`);
+      if (e.tags.length === 0) problems.push(`"${e.title}" has no tags`);
+    }
+
+    const linkTotal = entries.reduce((n, e) => n + e.collections.length, 0);
+    if (linkTotal !== counts.entryLinks) {
+      problems.push(
+        `entry/collection links mismatch: ${linkTotal} via relations vs ${counts.entryLinks} rows`
+      );
+    }
+
+    if (problems.length > 0) {
+      throw new Error(`seed data integrity problems:\n  - ${problems.join('\n  - ')}`);
+    }
+    console.log('\n✔ integrity checks passed');
   }
 
-  // 4. Do writes work? Rolled back so the database is left untouched.
+  // 5. Do writes work? Rolled back so the database is left untouched.
   class Rollback extends Error {}
   try {
     await prisma.$transaction(async (tx) => {
