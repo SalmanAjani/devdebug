@@ -1,61 +1,18 @@
-# Current Feature: Email Verification Toggle
+# Current Feature
+
+<!-- Feature Name -->
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Add a single server-side flag that turns the whole email verification flow on or off.
-- Read it from an env var (`EMAIL_VERIFICATION_ENABLED`) through one typed helper in
-  `src/lib/features.ts`, so no other file touches `process.env` for this.
-- Default to **enabled**: only the literal `"false"` disables it. A missing or typo'd
-  value must not silently drop verification in production.
-- With the flag **off**:
-  - `POST /api/auth/register` creates the user with `emailVerified` already stamped,
-    skips `createVerificationToken` and `sendVerificationEmail`, and never needs a
-    `RESEND_API_KEY`.
-  - Credentials `authorize` in `src/auth.ts` skips the `EmailUnverifiedError` throw.
-  - `resendVerificationEmail` in `src/actions/auth.ts` returns without sending, and the
-    resend button never renders.
-  - The post-register banner on `/sign-in` says the account is ready to sign in, not
-    "check your inbox".
-- With the flag **on**, behaviour is byte-for-byte what it is today.
-- `GET /api/auth/verify-email` keeps working regardless of the flag, so links already in
-  someone's inbox still redeem.
-- Document the variable in `.env.example` with a note on why it exists.
-- `npm run build` and `npm run lint` clean; both flag states verified in the browser.
+<!-- Goals & requirements -->
 
 ## Notes
 
-**Why:** Resend has no verified domain on this project yet, so `onboarding@resend.dev`
-only delivers to the account owner's address. Any other signup gets an account it can
-never sign into. The flag makes local and pre-launch testing possible without gutting the
-verification code.
-
-**Touchpoints identified:**
-
-| File | Change |
-| --- | --- |
-| `src/lib/features.ts` | New. `isEmailVerificationEnabled()` |
-| `src/app/api/auth/register/route.ts` | Skip token + email, stamp `emailVerified` |
-| `src/auth.ts` | Skip the unverified throw in `authorize` |
-| `src/actions/auth.ts` | Short-circuit `resendVerificationEmail` |
-| `src/components/auth/SignInForm.tsx` | ~~Hide the resend button when off~~ — no change needed |
-| `src/app/(auth)/sign-in/page.tsx` | `?registered=1` banner copy varies by flag |
-| `.env.example` | Document `EMAIL_VERIFICATION_ENABLED` |
-
-`SignInForm` turned out to need nothing: it renders the resend button off
-`state.unverifiedEmail`, which is only ever set by the `EmailUnverifiedError` that
-`authorize` no longer throws when the flag is off. No prop to drill.
-
-**Decisions to confirm during implementation:**
-
-- Stamping `emailVerified` at creation while the flag is off means those accounts keep
-  working if the flag is later switched on. The alternative — leaving it `null` — locks
-  every account created during the off period out at flip time. Going with the stamp.
-- The helper is server-only. It must not leak into a client component via
-  `NEXT_PUBLIC_`; anything the UI needs is passed down from a server component as a prop.
+<!-- Any extra notes -->
 
 ## History
 
@@ -75,3 +32,4 @@ verification code.
 - **Auth Setup Phase 2** - Credentials provider with email/password, bcrypt validation, /api/auth/register endpoint with Zod validation (Completed)
 - **Auth Setup Phase 3** - Custom sign-in and register pages, reusable UserAvatar component with image/initials fallback, sidebar user dropdown with profile link and sign out, dashboard queries scoped to the authenticated session user (Completed)
 - **Email Verification on Register** - Resend verification link on signup, hashed single-use tokens with 24h expiry, /api/auth/verify-email redemption route, credentials sign-in blocked until verified, rate-limited resend button, single-banner sign-in page, db:reset-users script (Completed)
+- **Email Verification Toggle** - EMAIL_VERIFICATION_ENABLED flag behind isEmailVerificationEnabled() in src/lib/features.ts, defaults on and only "false" disables it, register stamps emailVerified and skips the send when off, authorize skips the unverified throw, resend action refuses, banner copy varies (Completed)
