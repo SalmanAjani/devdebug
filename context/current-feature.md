@@ -1,29 +1,18 @@
-# Current Feature: Auth UI - Sign In, Register & Sign Out
+# Current Feature
+
+<!-- Feature Name -->
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Custom `/sign-in` page replacing the NextAuth default: email + password fields, "Sign in with GitHub" button, link to register, validation and error display
-- Custom `/register` page: name, email, password, confirm password, validation (passwords match, email format), submits to `/api/auth/register`, redirects to sign-in on success
-- Sidebar footer shows the signed-in user: avatar (GitHub image or initials fallback) and name
-- Dropdown on avatar click with a "Sign out" link; clicking the user icon navigates to `/profile`
-- Reusable avatar component handling both the image and initials cases
-- Retire `DEMO_USER_EMAIL` entirely: `getCurrentUser()` reads the session, and every entry/collection/pin/count query scopes by `session.user.id` — no hardcoded user left in `src/`
+<!-- Goals & requirements -->
 
 ## Notes
 
-- Spec: @context/features/auth-spec-files/auth-phase-3-spec.md
-- Avatar logic: use `user.image` when present (GitHub), otherwise derive initials from the name ("John Doe" → "JD")
-- Builds on Auth Phase 1 (GitHub OAuth) and Phase 2 (Credentials provider + `/api/auth/register`)
-- `DEMO_USER_EMAIL` is hardcoded across five queries in `src/lib/db/user.ts`, `entries.ts` and `collections.ts` — all move to `session.user.id`, which also makes the sidebar footer show the real account
-- Standing rule now in @context/coding-standards.md ("User Data Scoping"): all user data comes from the DB, scoped by session user id, resolved via `auth()` — no fixtures or ambient defaults. Signing in as `johndoe@mail.com` must show only that user's entries, collections and pins
-- The seed script stays as-is; it's the one place allowed to name a user
-- Sign-out needs an explicit `redirectTo` — the redirect callback in `auth.config.ts` can't distinguish sign-out from sign-in
-- `src/proxy.ts` points at NextAuth's default sign-in page; it needs to point at `/sign-in`
-- Manual test pass: `/sign-in` renders, GitHub sign-in works, email/password sign-in works, avatar renders correctly, dropdown opens, sign-out redirects, `/register` creates an account and redirects to sign-in
+<!-- Any extra notes -->
 
 ## History
 
@@ -41,3 +30,4 @@ In Progress
 - Code Scan Quick Wins - low-risk fixes from the code scan: entry_list_indexes migration (composite userId/isPinned/createdAt, dropped two redundant indexes), trimmed unused columns from the entries select, blank-name avatar fallback in getCurrentUser, parallel counts in scripts/test-db.ts, dashboard loading skeleton, (dashboard)/error.tsx plus global-error.tsx sharing a new ErrorState component; root error.tsx cannot catch a layout throw, so global-error is what covers the sidebar-count query; prod branch still needs prisma migrate deploy (Completed)
 - Auth Setup Phase 1 - NextAuth v5 + GitHub OAuth: split config (auth.config.ts edge-safe, auth.ts with Prisma adapter and JWT strategy), jwt/session callbacks carrying user.id, redirect callback sending post-login to /dashboard, [...nextauth] route handler, src/proxy.ts protecting /dashboard/* via NextAuth's default sign-in page, Session type augmentation; augment @auth/core/jwt not next-auth/jwt (re-export blocks declaration merging); sign-out will need an explicit redirectTo since the redirect callback cannot tell it from sign-in; getCurrentUser still reads DEMO_USER_EMAIL (Completed)
 - Auth Setup Phase 2 - Credentials provider for email/password: auth.config.ts holds an `authorize: () => null` placeholder so the edge build stays free of Prisma/bcrypt, auth.ts overrides it with the Prisma lookup plus bcrypt.compare, POST /api/auth/register hashing at cost 12 with 201/400/409/500 in the { success, error } shape and P2002 caught as a 409, new src/lib/validations/auth.ts with registerSchema/signInSchema both lower-casing email, zod added (the standards required it but it was never installed); the `...authConfig` spread had to move to the top of the NextAuth call or the placeholder overwrites the real provider; no migration needed since User.password already existed; npm run test is still documented but Vitest is not installed (Completed)
+- Auth Setup Phase 3 - custom auth UI plus session-scoped data: (auth) route group with /sign-in and /register, pages.signIn and pages.error pointed at /sign-in in auth.config.ts, server actions for credentials/GitHub sign-in and sign-out, callbackUrl rejected unless it is a same-site path, sidebar footer replaced by a dropdown (Profile, Settings, Sign out) with sign-out as a form post so it survives no hydration, reusable UserAvatar, new /profile page; DEMO_USER_EMAIL dropped entirely — getCurrentUser and the new requireUserId read the session and all five entry/collection/count queries filter on session.user.id, both wrapped in React cache so the layout decodes the token once; toInitials moved to src/lib/initials.ts because client components cannot import lib/db/user.ts (it reaches Prisma via @/auth); proxy matcher extended to /collections, /pinned, /profile; shadcn label/field/dropdown-menu added; lucide v1 has no brand icons so the GitHub mark is inlined SVG; Base UI menu items rendering a real button need `nativeButton`; scoping rule written into coding-standards.md; GitHub OAuth not verified end to end (needs a real handshake); npm run test still absent — Vitest never installed (Completed)
