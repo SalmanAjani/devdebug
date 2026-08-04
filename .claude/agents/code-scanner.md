@@ -46,6 +46,8 @@ Report findings grouped by severity, most severe first. Omit a severity heading 
 What is wrong and why it matters — 1-3 sentences, concrete.
 
 **Fix:** The specific change to make, with a short code sketch when it clarifies.
+
+Give it in table format for it to be easy to understand.
 ```
 
 Severity means:
