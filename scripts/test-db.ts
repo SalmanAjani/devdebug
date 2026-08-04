@@ -56,14 +56,25 @@ async function main() {
   }
 
   // 3. Are the tables queryable through Prisma Client?
+  const [users, debugEntries, collections, entryLinks, tags, technologies, aiUsage] =
+    await Promise.all([
+      prisma.user.count(),
+      prisma.debugEntry.count(),
+      prisma.collection.count(),
+      prisma.entryCollection.count(),
+      prisma.tag.count(),
+      prisma.technology.count(),
+      prisma.aiUsage.count(),
+    ]);
+
   const counts = {
-    users: await prisma.user.count(),
-    debugEntries: await prisma.debugEntry.count(),
-    collections: await prisma.collection.count(),
-    entryLinks: await prisma.entryCollection.count(),
-    tags: await prisma.tag.count(),
-    technologies: await prisma.technology.count(),
-    aiUsage: await prisma.aiUsage.count(),
+    users,
+    debugEntries,
+    collections,
+    entryLinks,
+    tags,
+    technologies,
+    aiUsage,
   };
   console.log('\n✔ row counts');
   for (const [model, count] of Object.entries(counts)) {
