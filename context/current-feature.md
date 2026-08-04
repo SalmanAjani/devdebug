@@ -1,18 +1,32 @@
-# Current Feature
-
-<!-- Feature Name -->
+# Current Feature: Auth Setup Phase 2 - Credentials Provider
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals & requirements -->
+- Add a Credentials provider for email/password sign-in alongside the existing GitHub OAuth
+- Hash and verify passwords with bcryptjs
+- Add `POST /api/auth/register` accepting name, email, password, confirmPassword
+- Registration validates passwords match, rejects an email that already exists, hashes the password, creates the user, and returns a success/error response
+- Email/password sign-in through `/api/auth/signin` lands on `/dashboard`
+- GitHub OAuth keeps working unchanged
 
 ## Notes
 
-<!-- Any extra notes -->
+- Split config pattern: `auth.config.ts` declares the Credentials provider with an `authorize: () => null` placeholder (keeps it edge-safe); `auth.ts` overrides it with the real bcrypt validation.
+- `User.password` (`String?`, null for OAuth-only users) already exists in the schema — no migration needed.
+- bcryptjs is already installed (seed.ts uses it).
+- Testing: register via curl, then sign in at `/api/auth/signin`, verify redirect to `/dashboard`, then re-verify GitHub OAuth.
+
+```bash
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","email":"test@test.com","password":"password123","confirmPassword":"password123"}'
+```
+
+- Reference: https://authjs.dev/getting-started/authentication/credentials
 
 ## History
 
