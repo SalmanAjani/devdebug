@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { hash } from "bcryptjs";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { sendVerificationEmail } from "@/lib/email";
 import { isEmailVerificationEnabled } from "@/lib/features";
+import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
 import { createVerificationToken } from "@/lib/verification";
-
-/** Cost 12 — the same factor the seed script uses. */
-const SALT_ROUNDS = 12;
 
 const EMAIL_TAKEN = "An account with that email already exists";
 
@@ -69,7 +66,7 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
-        password: await hash(password, SALT_ROUNDS),
+        password: await hashPassword(password),
         // Stamped up front while verification is off, rather than left null:
         // these accounts have to keep working if the flag is switched back on,
         // and nothing will ever arrive to clear a null for them.

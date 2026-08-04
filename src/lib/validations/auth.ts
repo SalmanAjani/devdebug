@@ -37,3 +37,28 @@ export const signInSchema = z.object({
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
+
+/** Address to send a reset link to. */
+export const forgotPasswordSchema = z.object({
+  email: z.email("Enter a valid email address").toLowerCase(),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+/**
+ * The reset form. The token rides along in a hidden input rather than being
+ * read from the url server-side — a Server Action receives form data, not the
+ * page's query string.
+ */
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "This reset link is missing its token"),
+    password,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

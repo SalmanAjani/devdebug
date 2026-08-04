@@ -1,18 +1,41 @@
-# Current Feature
-
-<!-- Feature Name -->
+# Current Feature: Forgot Password
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals & requirements -->
+- "Forgot password?" link on the sign-in form, next to the password field.
+- `/forgot-password` page: email field, submits to a server action that emails a reset link.
+- Response never varies with whether the address exists, has a password, or is
+  rate-limited — same confirmation every time, no enumeration oracle.
+- Reset tokens reuse the existing `VerificationToken` model, hashed and single-use,
+  with a shorter TTL than email verification (1 hour).
+- `/reset-password?token=...` page: new password + confirm, validated with Zod,
+  hashed with bcrypt on submit.
+- A successful reset clears any other live tokens for that address and lands on
+  `/sign-in` with a success banner.
+- Rate limit reset requests per address, same database-backed cooldown approach as
+  the verification resend.
+- Unit tests for the token helpers and the reset action.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Reuse, don't duplicate: `src/lib/verification.ts` already has hashing, issue,
+  consume and cooldown helpers. Generalise them rather than copy-pasting a second set.
+- **Identifier collision:** `verification_tokens` is keyed by `identifier` (the raw
+  email) and `createVerificationToken` deletes every existing row for that identifier.
+  Password reset tokens need a namespaced identifier (e.g. `reset:<email>`) or the two
+  flows will silently invalidate each other's links.
+- Email sending follows `src/lib/email.ts` — same inline-style template shape, same
+  `AUTH_URL` origin helper, throw on Resend error.
+- OAuth-only users have `password: null`. A reset request for one sends nothing but
+  still returns the standard confirmation.
+- Redemption is a mutation, so the reset submit is a server action; the
+  `/reset-password` page only validates that a token was supplied and renders the form.
+- Zod: add a reset schema in `src/lib/validations/auth.ts` reusing the existing
+  `password` rules (8–72 chars, confirm must match).
 
 ## History
 
