@@ -6,6 +6,7 @@ import { z } from "zod";
 import { signIn, signOut } from "@/auth";
 import { EMAIL_UNVERIFIED_CODE } from "@/lib/auth-errors";
 import { sendVerificationEmail } from "@/lib/email";
+import { isEmailVerificationEnabled } from "@/lib/features";
 import { prisma } from "@/lib/prisma";
 import { signInSchema } from "@/lib/validations/auth";
 import { createVerificationToken, isWithinResendCooldown } from "@/lib/verification";
@@ -134,6 +135,11 @@ export async function resendVerificationEmail(
     attempt,
     message: "A new verification link has been sent.",
   };
+
+  // With verification off nothing renders the button, but the action is still a
+  // public endpoint — so it refuses here rather than trusting the UI, and says
+  // the same thing it always says.
+  if (!isEmailVerificationEnabled()) return sent;
 
   const parsed = z.email().toLowerCase().safeParse(formData.get("email"));
 

@@ -3,6 +3,7 @@ import { hash } from "bcryptjs";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { sendVerificationEmail } from "@/lib/email";
+import { isEmailVerificationEnabled } from "@/lib/features";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
 import { createVerificationToken } from "@/lib/verification";
@@ -61,20 +62,32 @@ export async function POST(request: Request) {
     return failure(EMAIL_TAKEN, 409);
   }
 
+  const verificationEnabled = isEmailVerificationEnabled();
+
   try {
     const user = await prisma.user.create({
-      data: { name, email, password: await hash(password, SALT_ROUNDS) },
+      data: {
+        name,
+        email,
+        password: await hash(password, SALT_ROUNDS),
+        // Stamped up front while verification is off, rather than left null:
+        // these accounts have to keep working if the flag is switched back on,
+        // and nothing will ever arrive to clear a null for them.
+        emailVerified: verificationEnabled ? null : new Date(),
+      },
       select: { id: true, name: true, email: true },
     });
 
     // Deliberately outside the failure path above: the account exists either
     // way, and a Resend outage should not turn a successful signup into a 500.
     // The user can pull a fresh link from the sign-in page.
-    try {
-      const token = await createVerificationToken(user.email);
-      await sendVerificationEmail({ to: user.email, name: user.name, token });
-    } catch (error) {
-      console.error("Verification email failed for", user.email, error);
+    if (verificationEnabled) {
+      try {
+        const token = await createVerificationToken(user.email);
+        await sendVerificationEmail({ to: user.email, name: user.name, token });
+      } catch (error) {
+        console.error("Verification email failed for", user.email, error);
+      }
     }
 
     return NextResponse.json<RegisterResponse>({ success: true, data: user }, { status: 201 });

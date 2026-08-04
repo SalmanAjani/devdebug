@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { compare } from "bcryptjs";
 import { EmailUnverifiedError } from "@/lib/auth-errors";
+import { isEmailVerificationEnabled } from "@/lib/features";
 import { prisma } from "@/lib/prisma";
 import { signInSchema } from "@/lib/validations/auth";
 import authConfig from "@/auth.config";
@@ -58,8 +59,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!(await compare(password, user.password))) return null;
 
         // Only after the password checks out, so this never becomes a way to
-        // ask whether an address is registered.
-        if (!user.emailVerified) throw new EmailUnverifiedError();
+        // ask whether an address is registered. Skipped entirely when the flag
+        // is off, which lets accounts left unverified from an earlier run in
+        // still sign in.
+        if (isEmailVerificationEnabled() && !user.emailVerified) {
+          throw new EmailUnverifiedError();
+        }
 
         // Never return the hash: whatever comes back here feeds the JWT.
         return { id: user.id, email: user.email, name: user.name, image: user.image };
