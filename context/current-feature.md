@@ -1,42 +1,18 @@
-# Current Feature: Auth Setup - NextAuth + GitHub Provider
+# Current Feature
+
+<!-- Feature Name -->
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Install NextAuth v5 (`next-auth@beta`) and `@auth/prisma-adapter`
-- Set up the split auth config pattern for edge compatibility
-  - `src/auth.config.ts` - edge-safe config (providers only, no adapter)
-  - `src/auth.ts` - full config with Prisma adapter and JWT strategy
-- Add the GitHub OAuth provider
-- Add `src/app/api/auth/[...nextauth]/route.ts` exporting the handlers from `auth.ts`
-- Protect `/dashboard/*` via Next.js 16 proxy at `src/proxy.ts`, redirecting unauthenticated users to sign-in
-- Extend the Session type with `user.id` in `src/types/next-auth.d.ts`
+<!-- Goals & requirements -->
 
 ## Notes
 
-Spec: @context/features/auth-spec-files/auth-phase-1-spec.md
-
-Use Context7 to verify the newest config and conventions before writing code.
-
-Gotchas:
-
-- Install `next-auth@beta` — `@latest` still resolves to v4
-- Proxy file lives at `src/proxy.ts`, same level as `app/`
-- Named export only: `export const proxy = auth(...)`, not a default export
-- `session: { strategy: 'jwt' }` is required with the split config pattern
-- Do not set a custom `pages.signIn` — this phase uses NextAuth's default page
-
-Env vars needed: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
-
-Testing: hit `/dashboard` → redirects to sign-in → "Sign in with GitHub" → lands back on `/dashboard`.
-
-References:
-
-- Edge compatibility: https://authjs.dev/getting-started/installation#edge-compatibility
-- Prisma adapter: https://authjs.dev/getting-started/adapters/prisma
+<!-- Any extra notes -->
 
 ## History
 
@@ -52,3 +28,4 @@ References:
 - Sidebar Stats - item counts beside the sidebar links from Neon: new src/lib/db/collections.ts, entry/pinned counts in entries.ts, shared DEMO_USER_EMAIL in src/lib/db/user.ts, counts fetched in parallel in the async dashboard layout, count in tooltip when collapsed (Completed)
 - Remove Mock Data - deleted src/lib/mock-data.ts, sidebar footer now reads the demo user via getCurrentUser() in src/lib/db/user.ts, null-safe on an unseeded database, empty state for the entries grid (Completed)
 - Code Scan Quick Wins - low-risk fixes from the code scan: entry_list_indexes migration (composite userId/isPinned/createdAt, dropped two redundant indexes), trimmed unused columns from the entries select, blank-name avatar fallback in getCurrentUser, parallel counts in scripts/test-db.ts, dashboard loading skeleton, (dashboard)/error.tsx plus global-error.tsx sharing a new ErrorState component; root error.tsx cannot catch a layout throw, so global-error is what covers the sidebar-count query; prod branch still needs prisma migrate deploy (Completed)
+- Auth Setup Phase 1 - NextAuth v5 + GitHub OAuth: split config (auth.config.ts edge-safe, auth.ts with Prisma adapter and JWT strategy), jwt/session callbacks carrying user.id, redirect callback sending post-login to /dashboard, [...nextauth] route handler, src/proxy.ts protecting /dashboard/* via NextAuth's default sign-in page, Session type augmentation; augment @auth/core/jwt not next-auth/jwt (re-export blocks declaration merging); sign-out will need an explicit redirectTo since the redirect callback cannot tell it from sign-in; getCurrentUser still reads DEMO_USER_EMAIL (Completed)
