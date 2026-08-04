@@ -48,17 +48,26 @@ const VERIFY_MESSAGES: Record<string, SignInNotice> = {
   },
 };
 
+/** Outcome of the password reset form, which redirects here rather than rendering its own. */
+const RESET_MESSAGES: Record<string, SignInNotice> = {
+  success: {
+    variant: "success",
+    message: "Password updated. Sign in with your new password.",
+  },
+};
+
 interface SignInPageProps {
   searchParams: Promise<{
     callbackUrl?: string;
     error?: string;
     registered?: string;
+    reset?: string;
     verify?: string;
   }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { callbackUrl, error, registered, verify } = await searchParams;
+  const { callbackUrl, error, registered, reset, verify } = await searchParams;
 
   // Already signed in — no reason to show the form again.
   if (await auth()) {
@@ -67,13 +76,15 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   // At most one, and the form narrows it further once the user submits. An
   // OAuth failure is the most recent thing to have happened, so it outranks a
-  // verification outcome, which in turn outranks the registration confirmation.
+  // password reset, which outranks a verification outcome, which in turn
+  // outranks the registration confirmation.
   const notice: SignInNotice | undefined = error
     ? {
         variant: "error",
         message: ERROR_MESSAGES[error] ?? "Could not sign you in. Please try again.",
       }
-    : (verify ? VERIFY_MESSAGES[verify] : undefined) ??
+    : (reset ? RESET_MESSAGES[reset] : undefined) ??
+      (verify ? VERIFY_MESSAGES[verify] : undefined) ??
       (registered
         ? {
             variant: "success",
