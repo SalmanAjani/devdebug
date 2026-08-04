@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bug, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react";
+import { Bug, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { SidebarUser } from "@/components/layout/SidebarUser";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   SIDEBAR_NAV_ITEMS,
@@ -129,49 +129,7 @@ export function SidebarContent({
       </nav>
 
       {/* User */}
-      <div
-        className={cn(
-          "flex shrink-0 items-center gap-2.5 border-t border-sidebar-border p-3",
-          collapsed && "flex-col gap-2"
-        )}
-      >
-        <Avatar>
-          {user?.image && <AvatarImage src={user.image} alt={user.name} />}
-          <AvatarFallback>{user?.initials ?? "?"}</AvatarFallback>
-        </Avatar>
-
-        {!collapsed && (
-          <div className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span className="truncate text-sm font-medium">
-              {user?.name ?? "No user"}
-            </span>
-            <span className="truncate text-xs text-muted-foreground">
-              {user?.email ?? "Not signed in"}
-            </span>
-          </div>
-        )}
-
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Link
-                href="/settings"
-                onClick={onNavigate}
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                  "shrink-0 text-muted-foreground"
-                )}
-              >
-                <Settings />
-                <span className="sr-only">Settings</span>
-              </Link>
-            }
-          />
-          <TooltipContent side={collapsed ? "right" : "top"}>
-            Settings
-          </TooltipContent>
-        </Tooltip>
-      </div>
+      <SidebarUser user={user} collapsed={collapsed} onNavigate={onNavigate} />
 
       {/* Collapse toggle */}
       {showCollapseToggle && (

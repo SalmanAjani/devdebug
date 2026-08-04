@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { DEMO_USER_EMAIL } from "@/lib/db/user";
+import { requireUserId } from "@/lib/db/user";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -32,14 +32,14 @@ export type EntryListItem = Prisma.DebugEntryGetPayload<{
 }>;
 
 /**
- * Every entry for the dashboard grid, pinned first then newest.
+ * Every entry belonging to the signed-in user, pinned first then newest.
  *
  * Pagination is client-side for now, so the whole list is fetched in one query
  * — technologies and tags come along with it to avoid an N+1 per card.
  */
 export async function getEntries(): Promise<EntryListItem[]> {
   return prisma.debugEntry.findMany({
-    where: { user: { email: DEMO_USER_EMAIL } },
+    where: { userId: await requireUserId() },
     select: entryListSelect,
     orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
   });
@@ -63,7 +63,7 @@ export async function getRecentlyViewedEntries(
   limit: number
 ): Promise<RecentlyViewedEntry[]> {
   const entries = await prisma.debugEntry.findMany({
-    where: { user: { email: DEMO_USER_EMAIL }, viewedAt: { not: null } },
+    where: { userId: await requireUserId(), viewedAt: { not: null } },
     select: recentlyViewedSelect,
     orderBy: { viewedAt: "desc" },
     take: limit,
@@ -75,16 +75,16 @@ export async function getRecentlyViewedEntries(
   );
 }
 
-/** Total entries, for the sidebar badge. Counted in Postgres, not in JS. */
-export function getEntryCount(): Promise<number> {
+/** The user's total entries, for the sidebar badge. Counted in Postgres, not in JS. */
+export async function getEntryCount(): Promise<number> {
   return prisma.debugEntry.count({
-    where: { user: { email: DEMO_USER_EMAIL } },
+    where: { userId: await requireUserId() },
   });
 }
 
 /** Pinned entries only, for the sidebar badge. */
-export function getPinnedEntryCount(): Promise<number> {
+export async function getPinnedEntryCount(): Promise<number> {
   return prisma.debugEntry.count({
-    where: { user: { email: DEMO_USER_EMAIL }, isPinned: true },
+    where: { userId: await requireUserId(), isPinned: true },
   });
 }

@@ -1,18 +1,29 @@
-# Current Feature
-
-<!-- Feature Name -->
+# Current Feature: Auth UI - Sign In, Register & Sign Out
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals & requirements -->
+- Custom `/sign-in` page replacing the NextAuth default: email + password fields, "Sign in with GitHub" button, link to register, validation and error display
+- Custom `/register` page: name, email, password, confirm password, validation (passwords match, email format), submits to `/api/auth/register`, redirects to sign-in on success
+- Sidebar footer shows the signed-in user: avatar (GitHub image or initials fallback) and name
+- Dropdown on avatar click with a "Sign out" link; clicking the user icon navigates to `/profile`
+- Reusable avatar component handling both the image and initials cases
+- Retire `DEMO_USER_EMAIL` entirely: `getCurrentUser()` reads the session, and every entry/collection/pin/count query scopes by `session.user.id` — no hardcoded user left in `src/`
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: @context/features/auth-spec-files/auth-phase-3-spec.md
+- Avatar logic: use `user.image` when present (GitHub), otherwise derive initials from the name ("John Doe" → "JD")
+- Builds on Auth Phase 1 (GitHub OAuth) and Phase 2 (Credentials provider + `/api/auth/register`)
+- `DEMO_USER_EMAIL` is hardcoded across five queries in `src/lib/db/user.ts`, `entries.ts` and `collections.ts` — all move to `session.user.id`, which also makes the sidebar footer show the real account
+- Standing rule now in @context/coding-standards.md ("User Data Scoping"): all user data comes from the DB, scoped by session user id, resolved via `auth()` — no fixtures or ambient defaults. Signing in as `johndoe@mail.com` must show only that user's entries, collections and pins
+- The seed script stays as-is; it's the one place allowed to name a user
+- Sign-out needs an explicit `redirectTo` — the redirect callback in `auth.config.ts` can't distinguish sign-out from sign-in
+- `src/proxy.ts` points at NextAuth's default sign-in page; it needs to point at `/sign-in`
+- Manual test pass: `/sign-in` renders, GitHub sign-in works, email/password sign-in works, avatar renders correctly, dropdown opens, sign-out redirects, `/register` creates an account and redirects to sign-in
 
 ## History
 

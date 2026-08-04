@@ -1,40 +1,58 @@
+import { cache } from "react";
+import { redirect } from "next/navigation";
+
+import { auth } from "@/auth";
+import { toInitials } from "@/lib/initials";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Authentication ships in a later phase. Until then every query is scoped to
- * the seeded demo user, so swapping in the session user is a one-line change.
- */
-export const DEMO_USER_EMAIL = "demo@devdebug.com";
-
-/** What the sidebar footer renders. */
+/** What the sidebar footer and profile page render. */
 export interface CurrentUser {
+  id: string;
   name: string;
   email: string;
   image: string | null;
   initials: string;
 }
 
-/** "Demo Developer" -> "DD". Falls back to the email when the name is unset. */
-function toInitials(source: string): string {
-  const words = source.trim().split(/\s+/).filter(Boolean);
+/**
+ * The signed-in user's id, or a redirect to sign-in.
+ *
+ * Every query over user-owned data goes through this rather than trusting an
+ * id passed down from a caller — see "User Data Scoping" in the coding
+ * standards. The proxy already blocks unauthenticated `/dashboard` requests;
+ * this is the second line, and it covers routes the matcher does not.
+ *
+ * `cache` dedupes it per request — the dashboard layout alone fans out into
+ * four scoped queries, and they should not each decode the token again.
+ */
+export const requireUserId = cache(async (): Promise<string> => {
+  const session = await auth();
 
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
+  if (!session?.user?.id) {
+    redirect("/sign-in");
   }
 
-  return source.slice(0, 2).toUpperCase();
-}
+  return session.user.id;
+});
 
 /**
- * The signed-in user, stubbed to the seeded demo account until auth lands.
+ * The signed-in user, read fresh from the database.
  *
- * Returns null on a database with no demo user — a fresh clone before
- * `npm run db:seed` — so the shell renders instead of throwing.
+ * The JWT carries a name and image too, but they are a snapshot from sign-in.
+ * Reading the row means a profile edit shows up on the next request, and a
+ * deleted account stops rendering as a live user while its token is still valid.
+ *
+ * Returns null when there is no session, so the shell renders instead of
+ * throwing on a signed-out request.
  */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  const session = await auth();
+
+  if (!session?.user?.id) return null;
+
   const user = await prisma.user.findUnique({
-    where: { email: DEMO_USER_EMAIL },
-    select: { name: true, email: true, image: true },
+    where: { id: session.user.id },
+    select: { id: true, name: true, email: true, image: true },
   });
 
   if (!user) return null;
@@ -43,5 +61,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   // whitespace-only string has to fall back too or the avatar renders blank.
   const name = user.name?.trim() || user.email;
 
-  return { name, email: user.email, image: user.image, initials: toInitials(name) };
-}
+  return {
+    id: user.id,
+    name,
+    email: user.email,
+    image: user.image,
+    initials: toInitials(name),
+  };
+});
