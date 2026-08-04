@@ -130,7 +130,9 @@ model DebugEntry {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, status])
-  @@index([userId, isPinned])
+  // Covers the dashboard grid's `pinned first, then newest` sort. Also serves
+  // pinned-only lookups on its leading columns, so no separate isPinned index.
+  @@index([userId, isPinned(sort: Desc), createdAt(sort: Desc)])
   @@index([userId, viewedAt(sort: Desc)])
   @@map("debug_entries")
 }
@@ -152,8 +154,8 @@ model Collection {
   // Many-to-many with entries
   entries EntryCollection[]
 
+  // A userId-only index would duplicate this unique's leading column.
   @@unique([userId, name]) // no duplicate collection names per user
-  @@index([userId])
   @@map("collections")
 }
 

@@ -2,7 +2,12 @@ import type { Prisma } from "@/generated/prisma/client";
 import { DEMO_USER_EMAIL } from "@/lib/db/user";
 import { prisma } from "@/lib/prisma";
 
-/** Only the columns the entry cards render — the list never needs the long text. */
+/**
+ * Only the columns the entry cards render — the list never needs the long text.
+ *
+ * `createdAt` is absent on purpose: the cards don't show a date, and ordering
+ * by a column doesn't require selecting it.
+ */
 const entryListSelect = {
   id: true,
   title: true,
@@ -10,13 +15,14 @@ const entryListSelect = {
   errorMessage: true,
   status: true,
   isPinned: true,
-  createdAt: true,
   technologies: {
-    select: { id: true, name: true, slug: true, category: true },
+    // The badge renders `name`; `slug` is for routing and isn't needed here.
+    select: { id: true, name: true, category: true },
     orderBy: { name: "asc" },
   },
   tags: {
-    select: { id: true, name: true, slug: true },
+    // The card renders `#{slug}`, so the display `name` stays behind.
+    select: { id: true, slug: true },
     orderBy: { name: "asc" },
   },
 } satisfies Prisma.DebugEntrySelect;

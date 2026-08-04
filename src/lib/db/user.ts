@@ -39,7 +39,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   if (!user) return null;
 
-  const name = user.name ?? user.email;
+  // `||`, not `??`: `name` is free-form and nullable, so an empty or
+  // whitespace-only string has to fall back too or the avatar renders blank.
+  const name = user.name?.trim() || user.email;
 
   return { name, email: user.email, image: user.image, initials: toInitials(name) };
 }
