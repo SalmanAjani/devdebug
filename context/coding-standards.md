@@ -84,6 +84,17 @@ Example v4 configuration:
 - Client components use Server Actions
 - Validate all inputs with Zod
 
+## User Data Scoping
+
+- All user data comes from the database. No mock data, no fixtures, no hardcoded user
+  constants anywhere in `src/` — the seed script is the only place that names a user.
+- Every query touching user-owned data (entries, collections, pins, tags, AI usage,
+  settings) is scoped by the authenticated user's `id` from the NextAuth session.
+- Resolve the user with `auth()`, never by email lookup or any ambient default. If there
+  is no session, the caller redirects to `/sign-in` — it does not fall back to a user.
+- Reads AND writes are scoped. A mutation on a record the session user does not own must
+  fail, not succeed on someone else's row.
+
 ## Error Handling
 
 - Use try/catch in Server Actions

@@ -32,7 +32,7 @@ Replace NextAuth default pages with custom UI. Update user icon, email and usern
 ### Avatar Logic
 
 - If user has `image` (from GitHub): use that
-- Otherwise: generate initials from name (e.g., "Brad Traversy" → "BT")
+- Otherwise: generate initials from name (e.g., "John Doe" → "JD")
 
 ### Initials Component
 

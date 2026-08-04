@@ -1,0 +1,36 @@
+"use client";
+
+import { signInWithGitHub } from "@/actions/auth";
+import { SubmitButton } from "@/components/auth/SubmitButton";
+
+/** Lucide v1 dropped its brand icons, so the GitHub mark is inlined. */
+function GitHubIcon(props: React.ComponentProps<"svg">) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58l-.01-2.05c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.12-.31-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.82 1.1.82 2.22l-.01 3.29c0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z" />
+    </svg>
+  );
+}
+
+interface GitHubSignInButtonProps {
+  /** Where to land after GitHub sends the user back. */
+  callbackUrl?: string;
+}
+
+/**
+ * Its own form, so the OAuth round trip is a plain server-action POST and the
+ * credentials form beside it keeps its own pending state.
+ */
+export function GitHubSignInButton({ callbackUrl }: GitHubSignInButtonProps) {
+  return (
+    <form action={signInWithGitHub}>
+      {callbackUrl && (
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+      )}
+      <SubmitButton variant="outline" size="lg" pendingLabel="Redirecting...">
+        <GitHubIcon className="size-4" />
+        Sign in with GitHub
+      </SubmitButton>
+    </form>
+  );
+}

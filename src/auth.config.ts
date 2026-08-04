@@ -12,6 +12,15 @@ import type { NextAuthConfig } from "next-auth";
  * @see https://authjs.dev/getting-started/installation#edge-compatibility
  */
 export default {
+  // Both instances need these: `auth.ts` spreads this config, and the proxy
+  // builds its own NextAuth from it. A mismatch would send users to NextAuth's
+  // built-in page from one path and the custom one from the other.
+  pages: {
+    signIn: "/sign-in",
+    // Credentials failures surface as `?error=CredentialsSignin` on the sign-in
+    // page rather than NextAuth's own error screen.
+    error: "/sign-in",
+  },
   providers: [
     GitHub,
     Credentials({
