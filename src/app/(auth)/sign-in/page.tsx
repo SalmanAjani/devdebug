@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
 import { SignInForm, type SignInNotice } from "@/components/auth/SignInForm";
 import { FieldSeparator } from "@/components/ui/field";
+import { isEmailVerificationEnabled } from "@/lib/features";
 
 export const metadata: Metadata = {
   title: "Sign in · DevDebug",
@@ -76,7 +77,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       (registered
         ? {
             variant: "success",
-            message: "Account created. Check your inbox for a link to verify your email.",
+            message: isEmailVerificationEnabled()
+              ? "Account created. Check your inbox for a link to verify your email."
+              : "Account created. Sign in to get started.",
           }
         : undefined);
 
