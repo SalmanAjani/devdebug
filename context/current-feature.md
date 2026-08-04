@@ -1,41 +1,18 @@
-# Current Feature: Forgot Password
+# Current Feature
+
+<!-- Feature Name -->
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- "Forgot password?" link on the sign-in form, next to the password field.
-- `/forgot-password` page: email field, submits to a server action that emails a reset link.
-- Response never varies with whether the address exists, has a password, or is
-  rate-limited — same confirmation every time, no enumeration oracle.
-- Reset tokens reuse the existing `VerificationToken` model, hashed and single-use,
-  with a shorter TTL than email verification (1 hour).
-- `/reset-password?token=...` page: new password + confirm, validated with Zod,
-  hashed with bcrypt on submit.
-- A successful reset clears any other live tokens for that address and lands on
-  `/sign-in` with a success banner.
-- Rate limit reset requests per address, same database-backed cooldown approach as
-  the verification resend.
-- Unit tests for the token helpers and the reset action.
+<!-- Goals & requirements -->
 
 ## Notes
 
-- Reuse, don't duplicate: `src/lib/verification.ts` already has hashing, issue,
-  consume and cooldown helpers. Generalise them rather than copy-pasting a second set.
-- **Identifier collision:** `verification_tokens` is keyed by `identifier` (the raw
-  email) and `createVerificationToken` deletes every existing row for that identifier.
-  Password reset tokens need a namespaced identifier (e.g. `reset:<email>`) or the two
-  flows will silently invalidate each other's links.
-- Email sending follows `src/lib/email.ts` — same inline-style template shape, same
-  `AUTH_URL` origin helper, throw on Resend error.
-- OAuth-only users have `password: null`. A reset request for one sends nothing but
-  still returns the standard confirmation.
-- Redemption is a mutation, so the reset submit is a server action; the
-  `/reset-password` page only validates that a token was supplied and renders the form.
-- Zod: add a reset schema in `src/lib/validations/auth.ts` reusing the existing
-  `password` rules (8–72 chars, confirm must match).
+<!-- Any extra notes -->
 
 ## History
 
@@ -56,3 +33,4 @@ In Progress
 - **Auth Setup Phase 3** - Custom sign-in and register pages, reusable UserAvatar component with image/initials fallback, sidebar user dropdown with profile link and sign out, dashboard queries scoped to the authenticated session user (Completed)
 - **Email Verification on Register** - Resend verification link on signup, hashed single-use tokens with 24h expiry, /api/auth/verify-email redemption route, credentials sign-in blocked until verified, rate-limited resend button, single-banner sign-in page, db:reset-users script (Completed)
 - **Email Verification Toggle** - EMAIL_VERIFICATION_ENABLED flag behind isEmailVerificationEnabled() in src/lib/features.ts, defaults on and only "false" disables it, register stamps emailVerified and skips the send when off, authorize skips the unverified throw, resend action refuses, banner copy varies (Completed)
+- **Forgot Password** - Shared token layer in src/lib/tokens.ts scoping verification_tokens by purpose, reset identifiers prefixed password-reset:, /forgot-password and /reset-password pages, 1h TTL with 60s cooldown, uniform response, reset stamps emailVerified and drops the pending verification token, hashPassword extracted, Vitest set up with 35 tests (Completed)
