@@ -64,8 +64,8 @@ export function RegisterForm() {
         return;
       }
 
-      // Registration does not sign the user in — the spec sends them to the
-      // sign-in page, and the banner there confirms the account was created.
+      // Registration does not sign the user in — it cannot, until the address
+      // is verified. The banner on the sign-in page points them at their inbox.
       // `pending` stays true on purpose so the button does not flick back to
       // its idle label while the router navigates away.
       router.push("/sign-in?registered=1");

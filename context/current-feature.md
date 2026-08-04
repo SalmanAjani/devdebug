@@ -1,33 +1,51 @@
-# Current Feature
-
-<!-- Feature Name -->
+# Current Feature: Email Verification on Register
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals & requirements -->
+- Send a verification email through Resend when an account is created via `/api/auth/register`.
+- Email contains a link the user clicks to verify. Clicking it marks the account verified and lands the user on the sign-in page with a success banner.
+- Block credentials sign-in until the account is verified, with a clear message instead of the generic "Invalid email or password."
+- Let an unverified user request a fresh link (resend), rate limited so the endpoint cannot be used to spam an inbox.
+- Handle the failure cases explicitly: token missing, malformed, expired, or already used.
 
 ## Notes
 
-<!-- Any extra notes -->
+**Existing pieces to build on**
+
+- `VerificationToken` model already exists in the schema (`identifier` / `token` / `expires`, unique on both) — reuse it rather than adding a table. No migration needed unless we decide otherwise.
+- `User.emailVerified` already exists and is currently never written. GitHub OAuth users get it set by the Prisma adapter; credentials users are the gap.
+- Registration flow today: [RegisterForm.tsx](src/components/auth/RegisterForm.tsx) → `POST` [route.ts](src/app/api/auth/register/route.ts) → redirect to `/sign-in?registered=1`. The banner copy on that redirect needs to change to "check your email".
+- Credentials gate lives in `authorize()` in [auth.ts:32-54](src/auth.ts#L32-L54).
+
+**Decisions to make during implementation**
+
+- Store a hash of the token (not the raw value) so a database leak does not hand out working links. Raw token goes in the email only.
+- Token expiry: 24 hours. Delete the row on use so a link is single-use.
+- Verification link needs an absolute base URL — check whether `AUTH_URL` is set in `.env`, add it if not.
+- Resend is not installed yet (`npm i resend`). From address is `onboarding@resend.dev`; `RESEND_API_KEY` is already in `.env`.
+- Resend's shared `onboarding@resend.dev` sender only delivers to the Resend account owner's address in test mode — verify with salmanajani98@gmail.com.
+- Email sending must not fail registration: if Resend errors, the account is still created and the user can resend.
+- Do not leak whether an email is registered from the resend endpoint — same response either way.
+- `npm run test` is in CLAUDE.md but there is no `test` script or Vitest in `package.json`; if unit tests are wanted for the token helpers, that setup has to happen first.
 
 ## History
 
-- Initial Setup - Next.js 16, Tailwind CSS v4, TypeScript configured (Completed)
-- Dashboard UI Phase 1 - shadcn/ui init, /dashboard route, layout shell, dark mode, top bar with search and new entry/collection buttons (Completed)
-- Dashboard UI Phase 2 - collapsible sidebar with brand header, nav links (All Debug Entries, Collections, Pinned, Favorites), user avatar footer with settings, collapse toggle, mobile drawer (Completed)
-- Dashboard UI Phase 3 - main content area with entry header/counts, filter and view toolbar, paginated entry card grid (6 per page), status/tech/tag badges, recently viewed list (Completed)
-- Remove Favorites - dropped favorites in favour of pinned: removed sidebar nav link and entry card star icon (no /favorites route existed) (Completed)
-- Database Setup - Prisma 7 + Neon PostgreSQL: schema for all 10 models, init migration, technology seed, Neon driver adapter, prisma.config.ts, db npm scripts, scripts/test-db.ts connectivity check (Completed)
-- Seed Mock Data - rewrote prisma/seed.ts to cover every model: demo user with bcryptjs hash, 18 technologies, 18 tags, 5 collections, 9 entries with hardcoded ids, 12 entry/collection links, AI usage row; fully idempotent; scripts/test-db.ts expanded to print the seeded data and run integrity checks (Completed)
-- Dashboard Entries Real Data - dashboard grid reads Neon via new src/lib/db/entries.ts, async server component with force-dynamic, entry components typed off Prisma instead of mock-data, recently viewed deferred (Completed)
-- Dashboard Recent Entries - recently viewed list back below the cards, own getRecentlyViewedEntries query (top 5 by viewedAt desc, nulls excluded), fetched in parallel with the grid, RecentlyViewed typed off Prisma (Completed)
-- Sidebar Stats - item counts beside the sidebar links from Neon: new src/lib/db/collections.ts, entry/pinned counts in entries.ts, shared DEMO_USER_EMAIL in src/lib/db/user.ts, counts fetched in parallel in the async dashboard layout, count in tooltip when collapsed (Completed)
-- Remove Mock Data - deleted src/lib/mock-data.ts, sidebar footer now reads the demo user via getCurrentUser() in src/lib/db/user.ts, null-safe on an unseeded database, empty state for the entries grid (Completed)
-- Code Scan Quick Wins - low-risk fixes from the code scan: entry_list_indexes migration (composite userId/isPinned/createdAt, dropped two redundant indexes), trimmed unused columns from the entries select, blank-name avatar fallback in getCurrentUser, parallel counts in scripts/test-db.ts, dashboard loading skeleton, (dashboard)/error.tsx plus global-error.tsx sharing a new ErrorState component; root error.tsx cannot catch a layout throw, so global-error is what covers the sidebar-count query; prod branch still needs prisma migrate deploy (Completed)
-- Auth Setup Phase 1 - NextAuth v5 + GitHub OAuth: split config (auth.config.ts edge-safe, auth.ts with Prisma adapter and JWT strategy), jwt/session callbacks carrying user.id, redirect callback sending post-login to /dashboard, [...nextauth] route handler, src/proxy.ts protecting /dashboard/* via NextAuth's default sign-in page, Session type augmentation; augment @auth/core/jwt not next-auth/jwt (re-export blocks declaration merging); sign-out will need an explicit redirectTo since the redirect callback cannot tell it from sign-in; getCurrentUser still reads DEMO_USER_EMAIL (Completed)
-- Auth Setup Phase 2 - Credentials provider for email/password: auth.config.ts holds an `authorize: () => null` placeholder so the edge build stays free of Prisma/bcrypt, auth.ts overrides it with the Prisma lookup plus bcrypt.compare, POST /api/auth/register hashing at cost 12 with 201/400/409/500 in the { success, error } shape and P2002 caught as a 409, new src/lib/validations/auth.ts with registerSchema/signInSchema both lower-casing email, zod added (the standards required it but it was never installed); the `...authConfig` spread had to move to the top of the NextAuth call or the placeholder overwrites the real provider; no migration needed since User.password already existed; npm run test is still documented but Vitest is not installed (Completed)
-- Auth Setup Phase 3 - custom auth UI plus session-scoped data: (auth) route group with /sign-in and /register, pages.signIn and pages.error pointed at /sign-in in auth.config.ts, server actions for credentials/GitHub sign-in and sign-out, callbackUrl rejected unless it is a same-site path, sidebar footer replaced by a dropdown (Profile, Settings, Sign out) with sign-out as a form post so it survives no hydration, reusable UserAvatar, new /profile page; DEMO_USER_EMAIL dropped entirely — getCurrentUser and the new requireUserId read the session and all five entry/collection/count queries filter on session.user.id, both wrapped in React cache so the layout decodes the token once; toInitials moved to src/lib/initials.ts because client components cannot import lib/db/user.ts (it reaches Prisma via @/auth); proxy matcher extended to /collections, /pinned, /profile; shadcn label/field/dropdown-menu added; lucide v1 has no brand icons so the GitHub mark is inlined SVG; Base UI menu items rendering a real button need `nativeButton`; scoping rule written into coding-standards.md; GitHub OAuth not verified end to end (needs a real handshake); npm run test still absent — Vitest never installed (Completed)
+- **Initial Setup** - Next.js 16, Tailwind CSS v4, TypeScript configured (Completed)
+- **Dashboard UI Phase 1** - Shadcn/ui init, /dashboard route, layout shell, dark mode, top bar with search and new entry/collection buttons (Completed)
+- **Dashboard UI Phase 2** - Collapsible sidebar with brand header, nav links, user avatar footer, mobile drawer (Completed)
+- **Dashboard UI Phase 3** - Main content area with entry header and counts, filter/view toolbar, paginated card grid, status and tech badges, recently viewed list (Completed)
+- **Remove Favorites** - Dropped favorites in favour of pinned (Completed)
+- **Database Setup** - Prisma 7 with Neon PostgreSQL, full schema and init migration, technology seed, Neon driver adapter, db npm scripts (Completed)
+- **Seed Mock Data** - Idempotent seed across every model: demo user, technologies, tags, collections, entries, AI usage (Completed)
+- **Dashboard Entries Real Data** - Entry grid reads Neon through src/lib/db/entries.ts, async server component, components typed off Prisma (Completed)
+- **Dashboard Recent Entries** - Recently viewed list from its own query, fetched in parallel with the grid (Completed)
+- **Sidebar Stats** - Entry, pinned and collection counts from Neon, fetched in parallel in the dashboard layout, shown in tooltip when collapsed (Completed)
+- **Remove Mock Data** - Deleted mock-data.ts, sidebar user read from the database, empty state for the entries grid (Completed)
+- **Code Scan Quick Wins** - Composite entry list index migration, trimmed entries select, loading skeleton, dashboard and global error boundaries sharing an ErrorState component (Completed)
+- **Auth Setup Phase 1** - NextAuth v5 with GitHub OAuth, split auth config for edge compatibility, Prisma adapter with JWT strategy, /dashboard route protection via proxy, Session type with user.id (Completed)
+- **Auth Setup Phase 2** - Credentials provider with email/password, bcrypt validation, /api/auth/register endpoint with Zod validation (Completed)
+- **Auth Setup Phase 3** - Custom sign-in and register pages, reusable UserAvatar component with image/initials fallback, sidebar user dropdown with profile link and sign out, dashboard queries scoped to the authenticated session user (Completed)

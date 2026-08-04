@@ -3,9 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { FormAlert } from "@/components/auth/FormAlert";
 import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
-import { SignInForm } from "@/components/auth/SignInForm";
+import { SignInForm, type SignInNotice } from "@/components/auth/SignInForm";
 import { FieldSeparator } from "@/components/ui/field";
 
 export const metadata: Metadata = {
@@ -27,25 +26,59 @@ const ERROR_MESSAGES: Record<string, string> = {
   Configuration: "Sign-in is misconfigured. Please contact support.",
 };
 
+/**
+ * Outcomes of `GET /api/auth/verify-email`, which redirects here with
+ * `?verify=<outcome>` rather than rendering a page of its own.
+ */
+const VERIFY_MESSAGES: Record<string, SignInNotice> = {
+  success: {
+    variant: "success",
+    message: "Email verified. Sign in to get started.",
+  },
+  expired: {
+    variant: "error",
+    message:
+      "That verification link has expired. Sign in below and we will send you a new one.",
+  },
+  invalid: {
+    variant: "error",
+    message:
+      "That verification link is not valid. It may have already been used — try signing in.",
+  },
+};
+
 interface SignInPageProps {
   searchParams: Promise<{
     callbackUrl?: string;
     error?: string;
     registered?: string;
+    verify?: string;
   }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { callbackUrl, error, registered } = await searchParams;
+  const { callbackUrl, error, registered, verify } = await searchParams;
 
   // Already signed in — no reason to show the form again.
   if (await auth()) {
     redirect(callbackUrl?.startsWith("/") ? callbackUrl : "/dashboard");
   }
 
-  const errorMessage = error
-    ? (ERROR_MESSAGES[error] ?? "Could not sign you in. Please try again.")
-    : undefined;
+  // At most one, and the form narrows it further once the user submits. An
+  // OAuth failure is the most recent thing to have happened, so it outranks a
+  // verification outcome, which in turn outranks the registration confirmation.
+  const notice: SignInNotice | undefined = error
+    ? {
+        variant: "error",
+        message: ERROR_MESSAGES[error] ?? "Could not sign you in. Please try again.",
+      }
+    : (verify ? VERIFY_MESSAGES[verify] : undefined) ??
+      (registered
+        ? {
+            variant: "success",
+            message: "Account created. Check your inbox for a link to verify your email.",
+          }
+        : undefined);
 
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -56,13 +89,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         </p>
       </header>
 
-      {registered && (
-        <FormAlert variant="success">
-          Account created. Sign in to get started.
-        </FormAlert>
-      )}
-
-      <SignInForm callbackUrl={callbackUrl} initialError={errorMessage} />
+      <SignInForm callbackUrl={callbackUrl} notice={notice} />
 
       <FieldSeparator>or</FieldSeparator>
 

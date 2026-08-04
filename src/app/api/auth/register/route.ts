@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
+import { sendVerificationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
+import { createVerificationToken } from "@/lib/verification";
 
 /** Cost 12 — the same factor the seed script uses. */
 const SALT_ROUNDS = 12;
@@ -64,6 +66,16 @@ export async function POST(request: Request) {
       data: { name, email, password: await hash(password, SALT_ROUNDS) },
       select: { id: true, name: true, email: true },
     });
+
+    // Deliberately outside the failure path above: the account exists either
+    // way, and a Resend outage should not turn a successful signup into a 500.
+    // The user can pull a fresh link from the sign-in page.
+    try {
+      const token = await createVerificationToken(user.email);
+      await sendVerificationEmail({ to: user.email, name: user.name, token });
+    } catch (error) {
+      console.error("Verification email failed for", user.email, error);
+    }
 
     return NextResponse.json<RegisterResponse>({ success: true, data: user }, { status: 201 });
   } catch (error) {

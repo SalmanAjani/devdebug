@@ -1,10 +1,14 @@
 "use server";
 
-import { AuthError } from "next-auth";
+import { AuthError, CredentialsSignin } from "next-auth";
 import { z } from "zod";
 
 import { signIn, signOut } from "@/auth";
+import { EMAIL_UNVERIFIED_CODE } from "@/lib/auth-errors";
+import { sendVerificationEmail } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
 import { signInSchema } from "@/lib/validations/auth";
+import { createVerificationToken, isWithinResendCooldown } from "@/lib/verification";
 
 /** Where sign-in lands when the request carried no usable callback. */
 const DEFAULT_REDIRECT = "/dashboard";
@@ -15,6 +19,17 @@ export interface AuthFormState {
   error?: string;
   /** Per-field messages from the Zod parse, keyed by input name. */
   fieldErrors?: Record<string, string[] | undefined>;
+  /** Set when the only thing wrong was verification — drives the resend button. */
+  unverifiedEmail?: string;
+  /**
+   * Bumped on every submit.
+   *
+   * The resend action echoes it back, which is the only way the form can tell a
+   * resend result that belongs to this attempt from one left over before the
+   * user pressed "Sign in" again. Without it the two states are independent and
+   * both would claim the banner.
+   */
+  attempt: number;
 }
 
 /**
@@ -38,9 +53,11 @@ function safeRedirect(value: FormDataEntryValue | null): string {
  * is not an `AuthError` continue on its way.
  */
 export async function signInWithCredentials(
-  _prevState: AuthFormState,
+  prevState: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
+  const attempt = prevState.attempt + 1;
+
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -48,6 +65,7 @@ export async function signInWithCredentials(
 
   if (!parsed.success) {
     return {
+      attempt,
       error: "Enter your email and password.",
       fieldErrors: z.flattenError(parsed.error).fieldErrors,
     };
@@ -59,21 +77,92 @@ export async function signInWithCredentials(
       redirectTo: safeRedirect(formData.get("callbackUrl")),
     });
   } catch (error) {
-    if (error instanceof AuthError) {
+    if (error instanceof CredentialsSignin) {
+      // The password was right and only verification is missing, so offer the
+      // way out instead of the dead-end message below.
+      if (error.code === EMAIL_UNVERIFIED_CODE) {
+        return {
+          attempt,
+          error: "Verify your email address before signing in.",
+          unverifiedEmail: parsed.data.email,
+        };
+      }
+
       // Deliberately the same message for "no such account" and "wrong
       // password" — telling them apart is an email-enumeration oracle.
-      return {
-        error:
-          error.type === "CredentialsSignin"
-            ? "Invalid email or password."
-            : "Something went wrong signing you in. Please try again.",
-      };
+      return { attempt, error: "Invalid email or password." };
+    }
+
+    if (error instanceof AuthError) {
+      return { attempt, error: "Something went wrong signing you in. Please try again." };
     }
 
     throw error;
   }
 
-  return {};
+  return { attempt };
+}
+
+/** What the resend button shows after a submit. */
+export interface ResendVerificationState {
+  message?: string;
+  error?: string;
+  /** Echo of the `AuthFormState.attempt` the button was rendered for. */
+  attempt: number;
+}
+
+/**
+ * Sends a fresh verification link.
+ *
+ * Rate limited to one email per address per minute. That cap lives in the
+ * database rather than in memory on purpose — serverless instances do not share
+ * a process, so an in-memory counter would reset on every cold start.
+ *
+ * The response never varies with whether the address exists or is already
+ * verified. Reaching this action normally requires a correct password, but a
+ * Server Action is a public endpoint and can be called directly.
+ */
+export async function resendVerificationEmail(
+  _prevState: ResendVerificationState,
+  formData: FormData
+): Promise<ResendVerificationState> {
+  // Echoed straight back so the form can tell whether this result still belongs
+  // to the sign-in attempt the button was rendered for.
+  const attempt = Number(formData.get("attempt")) || 0;
+
+  const sent = {
+    attempt,
+    message: "A new verification link has been sent.",
+  };
+
+  const parsed = z.email().toLowerCase().safeParse(formData.get("email"));
+
+  if (!parsed.success) return sent;
+
+  const email = parsed.data;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { name: true, emailVerified: true },
+    });
+
+    // Nothing to do, but say the same thing as a real send: a different message
+    // here would answer "is this address registered?" for anyone who asks.
+    // The cooldown is silent for the same reason — someone throttled by it was
+    // sent a working link less than a minute ago regardless.
+    if (!user || user.emailVerified || (await isWithinResendCooldown(email))) {
+      return sent;
+    }
+
+    const token = await createVerificationToken(email);
+    await sendVerificationEmail({ to: email, name: user.name, token });
+
+    return sent;
+  } catch (error) {
+    console.error("Resending the verification email failed for", email, error);
+    return { attempt, error: "Could not send the email. Please try again." };
+  }
 }
 
 /** GitHub OAuth. Always redirects, so it never returns a state. */
