@@ -3,6 +3,7 @@ import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { compare } from "bcryptjs";
+import { EmailUnverifiedError } from "@/lib/auth-errors";
 import { prisma } from "@/lib/prisma";
 import { signInSchema } from "@/lib/validations/auth";
 import authConfig from "@/auth.config";
@@ -39,7 +40,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, email: true, name: true, image: true, password: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+            password: true,
+            emailVerified: true,
+          },
         });
 
         // No row, or a GitHub-only account with a null password — either way
@@ -48,6 +56,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user?.password) return null;
 
         if (!(await compare(password, user.password))) return null;
+
+        // Only after the password checks out, so this never becomes a way to
+        // ask whether an address is registered.
+        if (!user.emailVerified) throw new EmailUnverifiedError();
 
         // Never return the hash: whatever comes back here feeds the JWT.
         return { id: user.id, email: user.email, name: user.name, image: user.image };
