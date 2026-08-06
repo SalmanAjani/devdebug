@@ -1,24 +1,18 @@
-# Current Feature: Profile Page
+# Current Feature
+
+<!-- Feature Name -->
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Create a protected profile page at the `/profile` route
-- Display user info: email, name, avatar (GitHub or initials), account creation date
-- Show usage stats: total entries, total collections
-- Add a change password action, visible only to email/password users
-- Add a delete account action behind a confirmation dialog
-- Follow existing codebase patterns for data fetching and components
+<!-- Goals & requirements -->
 
 ## Notes
 
-- Avatar: reuse the existing UserAvatar component — GitHub OAuth image when present, initials from name/email otherwise
-- Change password is hidden for GitHub OAuth-only users (no password on the account)
-- Delete account must require explicit confirmation before it runs
-- Route requires authentication; unauthenticated visitors are redirected to sign-in
+<!-- Any extra notes -->
 
 ## History
 
@@ -40,3 +34,4 @@ In Progress
 - **Email Verification on Register** - Resend verification link on signup, hashed single-use tokens with 24h expiry, /api/auth/verify-email redemption route, credentials sign-in blocked until verified, rate-limited resend button, single-banner sign-in page, db:reset-users script (Completed)
 - **Email Verification Toggle** - EMAIL_VERIFICATION_ENABLED flag behind isEmailVerificationEnabled() in src/lib/features.ts, defaults on and only "false" disables it, register stamps emailVerified and skips the send when off, authorize skips the unverified throw, resend action refuses, banner copy varies (Completed)
 - **Forgot Password** - Shared token layer in src/lib/tokens.ts scoping verification_tokens by purpose, reset identifiers prefixed password-reset:, /forgot-password and /reset-password pages, 1h TTL with 60s cooldown, uniform response, reset stamps emailVerified and drops the pending verification token, hashPassword extracted, Vitest set up with 35 tests (Completed)
+- **Profile Page** - getProfile() adding createdAt and hasPassword, src/lib/account.ts for the password write and account delete both clearing email-keyed tokens, changePassword and deleteAccount actions scoped to the session user and refusing OAuth-only accounts server-side, identity card with joined date, entry and collection stat tiles, change password dialog hidden without a password, delete behind an alert dialog, shadcn dialog and alert-dialog, 13 tests (Completed)
