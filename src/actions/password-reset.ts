@@ -13,6 +13,7 @@ import {
   revokePasswordResetTokens,
 } from "@/lib/password-reset";
 import { prisma } from "@/lib/prisma";
+import { checkAuthRateLimit, rateLimitMessage } from "@/lib/rate-limit";
 import { forgotPasswordSchema, resetPasswordSchema } from "@/lib/validations/auth";
 
 /** What the "forgot password" form holds between submits. */
@@ -48,6 +49,16 @@ export async function requestPasswordReset(
   }
 
   const { email } = parsed.data;
+
+  // Keyed by IP alone, so working through a list of addresses from one place
+  // spends the same budget as hammering a single one. Reporting the throttle
+  // is safe for the same reason the field errors above are: it describes this
+  // caller's request rate, not whether the address is registered.
+  const rateLimit = await checkAuthRateLimit("forgotPassword");
+
+  if (!rateLimit.success) {
+    return { error: rateLimitMessage(rateLimit.reset) };
+  }
 
   try {
     const user = await prisma.user.findUnique({
@@ -115,6 +126,15 @@ export async function resetPassword(
   }
 
   const { token, password } = parsed.data;
+
+  // Keyed by IP: the token is the thing being guessed here, so keying by it
+  // would give every guess its own fresh budget. Checked before the token is
+  // consumed so a throttled attempt cannot spend someone's live link.
+  const rateLimit = await checkAuthRateLimit("resetPassword");
+
+  if (!rateLimit.success) {
+    return { error: rateLimitMessage(rateLimit.reset) };
+  }
 
   try {
     const result = await consumePasswordResetToken(token);

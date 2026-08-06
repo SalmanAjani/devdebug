@@ -8,6 +8,7 @@ import { EMAIL_UNVERIFIED_CODE } from "@/lib/auth-errors";
 import { sendVerificationEmail } from "@/lib/email";
 import { isEmailVerificationEnabled } from "@/lib/features";
 import { prisma } from "@/lib/prisma";
+import { checkAuthRateLimit, rateLimitMessage } from "@/lib/rate-limit";
 import { safeRedirect } from "@/lib/redirects";
 import { signInSchema } from "@/lib/validations/auth";
 import { createVerificationToken, isWithinResendCooldown } from "@/lib/verification";
@@ -55,6 +56,15 @@ export async function signInWithCredentials(
       error: "Enter your email and password.",
       fieldErrors: z.flattenError(parsed.error).fieldErrors,
     };
+  }
+
+  // After the parse, so a malformed submit does not spend an attempt, and
+  // because the email is half the key. Before `signIn`, so a throttled caller
+  // never reaches the bcrypt comparison — that cost is the point of the limit.
+  const rateLimit = await checkAuthRateLimit("signIn", parsed.data.email);
+
+  if (!rateLimit.success) {
+    return { attempt, error: rateLimitMessage(rateLimit.reset) };
   }
 
   try {
@@ -131,6 +141,16 @@ export async function resendVerificationEmail(
   if (!parsed.success) return sent;
 
   const email = parsed.data;
+
+  // Safe to report, unlike everything else here: it describes how often this
+  // caller has asked, which they already know, and says nothing about whether
+  // the address is registered. The uniform `sent` response above still covers
+  // that question on every other path.
+  const rateLimit = await checkAuthRateLimit("resendVerification", email);
+
+  if (!rateLimit.success) {
+    return { attempt, error: rateLimitMessage(rateLimit.reset) };
+  }
 
   try {
     const user = await prisma.user.findUnique({
