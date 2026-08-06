@@ -5,6 +5,11 @@ import { sendVerificationEmail } from "@/lib/email";
 import { isEmailVerificationEnabled } from "@/lib/features";
 import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import {
+  checkAuthRateLimit,
+  rateLimitMessage,
+  secondsUntilReset,
+} from "@/lib/rate-limit";
 import { registerSchema } from "@/lib/validations/auth";
 import { createVerificationToken } from "@/lib/verification";
 
@@ -31,6 +36,20 @@ function failure(error: string, status: number, fieldErrors?: Record<string, str
  * a future mobile or CLI client would call, and it needs real status codes.
  */
 export async function POST(request: Request) {
+  // Before the parse and before any database work: a throttled caller should
+  // cost one Redis round trip, not a JSON decode and a user lookup.
+  const rateLimit = await checkAuthRateLimit("register");
+
+  if (!rateLimit.success) {
+    return NextResponse.json<RegisterResponse>(
+      { success: false, error: rateLimitMessage(rateLimit.reset) },
+      {
+        status: 429,
+        headers: { "Retry-After": String(secondsUntilReset(rateLimit.reset)) },
+      }
+    );
+  }
+
   let body: unknown;
 
   try {

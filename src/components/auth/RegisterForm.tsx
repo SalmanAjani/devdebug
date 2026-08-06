@@ -55,10 +55,20 @@ export function RegisterForm() {
         body: JSON.stringify(parsed.data),
       });
 
-      const result: RegisterResponse = await response.json();
+      // Read defensively: a throttled request is still a real answer, and
+      // letting a decode failure fall through to the catch would report it as
+      // "could not reach the server", which is both wrong and retryable-looking.
+      const result: RegisterResponse = await response.json().catch(() => ({
+        success: false,
+      }));
 
       if (!response.ok || !result.success) {
-        setError(result.error ?? "Could not create the account. Please try again.");
+        setError(
+          result.error ??
+            (response.status === 429
+              ? "Too many attempts. Please try again later."
+              : "Could not create the account. Please try again.")
+        );
         setFieldErrors(result.fieldErrors ?? {});
         setPending(false);
         return;
