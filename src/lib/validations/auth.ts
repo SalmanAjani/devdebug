@@ -62,3 +62,23 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+/**
+ * Changing a password from inside the account.
+ *
+ * Unlike the reset flow there is no token, so the current password is what
+ * proves the person at the keyboard is the account holder and not someone who
+ * walked up to an unlocked session.
+ */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    password,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
