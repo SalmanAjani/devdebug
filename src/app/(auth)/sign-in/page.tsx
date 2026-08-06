@@ -7,6 +7,7 @@ import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
 import { SignInForm, type SignInNotice } from "@/components/auth/SignInForm";
 import { FieldSeparator } from "@/components/ui/field";
 import { isEmailVerificationEnabled } from "@/lib/features";
+import { safeRedirect } from "@/lib/redirects";
 
 export const metadata: Metadata = {
   title: "Sign in · DevDebug",
@@ -69,9 +70,11 @@ interface SignInPageProps {
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const { callbackUrl, error, registered, reset, verify } = await searchParams;
 
-  // Already signed in — no reason to show the form again.
+  // Already signed in — no reason to show the form again. The callback goes
+  // through the same guard the form submissions use: it arrives in the query
+  // string, so `//evil.com` would otherwise redirect straight off-origin.
   if (await auth()) {
-    redirect(callbackUrl?.startsWith("/") ? callbackUrl : "/dashboard");
+    redirect(safeRedirect(callbackUrl));
   }
 
   // At most one, and the form narrows it further once the user submits. An

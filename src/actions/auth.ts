@@ -8,11 +8,9 @@ import { EMAIL_UNVERIFIED_CODE } from "@/lib/auth-errors";
 import { sendVerificationEmail } from "@/lib/email";
 import { isEmailVerificationEnabled } from "@/lib/features";
 import { prisma } from "@/lib/prisma";
+import { safeRedirect } from "@/lib/redirects";
 import { signInSchema } from "@/lib/validations/auth";
 import { createVerificationToken, isWithinResendCooldown } from "@/lib/verification";
-
-/** Where sign-in lands when the request carried no usable callback. */
-const DEFAULT_REDIRECT = "/dashboard";
 
 /** What `useActionState` holds between submits. Empty means "nothing failed yet". */
 export interface AuthFormState {
@@ -31,19 +29,6 @@ export interface AuthFormState {
    * both would claim the banner.
    */
   attempt: number;
-}
-
-/**
- * A `callbackUrl` reaches us from the proxy through a query string, so it is
- * user-controlled. Only same-site paths survive: a leading `//` or a `\` would
- * be read as another origin by the browser and turn this into an open redirect.
- */
-function safeRedirect(value: FormDataEntryValue | null): string {
-  if (typeof value !== "string") return DEFAULT_REDIRECT;
-  if (!value.startsWith("/")) return DEFAULT_REDIRECT;
-  if (value.startsWith("//") || value.startsWith("/\\")) return DEFAULT_REDIRECT;
-
-  return value;
 }
 
 /**
