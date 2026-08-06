@@ -69,3 +69,55 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     initials: toInitials(name),
   };
 });
+
+/** Everything the profile page shows about the account itself. */
+export interface Profile extends CurrentUser {
+  createdAt: Date;
+  /**
+   * Whether the account has a password at all.
+   *
+   * False for GitHub-only users — there is nothing to change, so the profile
+   * hides the option. The hash itself never leaves this function.
+   */
+  hasPassword: boolean;
+}
+
+/**
+ * The signed-in user with the extra columns only the profile renders.
+ *
+ * Separate from `getCurrentUser` rather than folded into it: the sidebar reads
+ * that one on every dashboard request and has no use for `createdAt` or the
+ * password check.
+ */
+export const getProfile = cache(async (): Promise<Profile | null> => {
+  const session = await auth();
+
+  if (!session?.user?.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      createdAt: true,
+      password: true,
+    },
+  });
+
+  if (!user) return null;
+
+  // Same fallback as `getCurrentUser` — see the note there on `||`.
+  const name = user.name?.trim() || user.email;
+
+  return {
+    id: user.id,
+    name,
+    email: user.email,
+    image: user.image,
+    initials: toInitials(name),
+    createdAt: user.createdAt,
+    hasPassword: user.password !== null,
+  };
+});
