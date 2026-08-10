@@ -45,6 +45,34 @@ export async function getEntries(): Promise<EntryListItem[]> {
   });
 }
 
+/** The signed-in user's pinned entries, newest first. Same card shape as the dashboard. */
+export async function getPinnedEntries(): Promise<EntryListItem[]> {
+  return prisma.debugEntry.findMany({
+    where: { userId: await requireUserId(), isPinned: true },
+    select: entryListSelect,
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+/**
+ * Entries inside one collection, most recently added to it first.
+ *
+ * Scoped by `userId` as well as the collection id: the caller has already
+ * checked ownership of the collection, but a query over user-owned data does
+ * not lean on a check made somewhere else.
+ */
+export async function getEntriesByCollection(
+  collectionId: string
+): Promise<EntryListItem[]> {
+  const rows = await prisma.entryCollection.findMany({
+    where: { collectionId, entry: { userId: await requireUserId() } },
+    select: { entry: { select: entryListSelect } },
+    orderBy: { addedAt: "desc" },
+  });
+
+  return rows.map((row) => row.entry);
+}
+
 /** The Recently Viewed rows are a single line each — far less than a card needs. */
 const recentlyViewedSelect = {
   id: true,
