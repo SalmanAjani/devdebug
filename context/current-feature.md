@@ -1,23 +1,18 @@
-# Current Feature: Collections and Pinned Routes
+# Current Feature
+
+<!-- Feature Name -->
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Add a `/collections` route reachable from the Collections link in the sidebar
-- Collections page lists every collection owned by the session user, 3 cards per row like the dashboard
-- Clicking a collection card opens that collection's entries in the same card layout
-- Add a `/pinned` route reachable from the Pinned link in the sidebar
-- Pinned page lists the session user's pinned entries, 3 cards per row like the dashboard
-- Pinned entry cards show the same information as the dashboard entry cards
+<!-- Goals & requirements -->
 
 ## Notes
 
-- Spec: @context/features/collections-pinned-spec.md
-- Reuse the existing dashboard entry card and grid components rather than duplicating them
-- All queries scoped by the authenticated user's `id` from the NextAuth session, reads and writes both
+<!-- Any extra notes -->
 
 ## History
 
@@ -41,3 +36,4 @@ In Progress
 - **Forgot Password** - Shared token layer in src/lib/tokens.ts scoping verification_tokens by purpose, reset identifiers prefixed password-reset:, /forgot-password and /reset-password pages, 1h TTL with 60s cooldown, uniform response, reset stamps emailVerified and drops the pending verification token, hashPassword extracted, Vitest set up with 35 tests (Completed)
 - **Profile Page** - getProfile() adding createdAt and hasPassword, src/lib/account.ts for the password write and account delete both clearing email-keyed tokens, changePassword and deleteAccount actions scoped to the session user and refusing OAuth-only accounts server-side, identity card with joined date, entry and collection stat tiles, change password dialog hidden without a password, delete behind an alert dialog, shadcn dialog and alert-dialog, 13 tests (Completed)
 - **Rate Limiting for Auth** - src/lib/rate-limit.ts with lazily built Upstash sliding-window limiters prefixed per action, failing open on error or timeout, sign-in 5/15min and resend 3/15min keyed by IP + email, register 3/h, forgot-password 3/h and reset-password 5/15min keyed by IP, checks placed before bcrypt, token consumption and body parsing, 429 with Retry-After from the register route and FormAlert banners from the actions, RegisterForm no longer reporting a 429 as a connection failure, 35 tests (Completed)
+- **Collections and Pinned Routes** - getCollections() with an entry tally from _count and getCollection() scoping ownership in the where so another user's collection reads as missing, getPinnedEntries() and getEntriesByCollection() reusing entryListSelect, /collections grid of the new CollectionCard, /collections/[id] with back link and notFound() when not the user's, /pinned with dashboard-style counts, EntriesSection taking an optional emptyMessage, EntriesSectionSkeleton extracted from the dashboard loading file and shared by every entry grid route (Completed)
