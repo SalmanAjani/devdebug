@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUserId } from "@/lib/db/user";
 import { prisma } from "@/lib/prisma";
+import type { UpdateEntryInput } from "@/lib/validations/entry";
 
 /**
  * Only the columns the entry cards render — the list never needs the long text.
@@ -129,6 +130,77 @@ export async function getEntryDetail(id: string): Promise<EntryDetail | null> {
   return {
     ...entry,
     collections: entry.collections.map((row) => row.collection),
+  };
+}
+
+/**
+ * The display form of a tag reduced to its match form.
+ *
+ * `slug` is the unique key on the tag table, so this is what decides whether
+ * "Race Condition" and "race condition" are one tag or two. They are one.
+ */
+function toTagSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Applies an edit from the drawer and returns the entry as the drawer shows it.
+ *
+ * Ownership is enforced by `updateMany`, which scopes by `userId` in the same
+ * statement — the tag write that follows only runs once that count proves the
+ * row is the caller's. Returns null when it is not, matching `getEntryDetail`:
+ * someone else's id reads as missing.
+ *
+ * The two writes are one transaction so a failure part-way cannot leave the
+ * entry updated with its old tags still attached.
+ */
+export async function updateEntry(
+  id: string,
+  data: UpdateEntryInput
+): Promise<EntryDetail | null> {
+  const userId = await requireUserId();
+  const { tags, errorMessage, codeSnippet, ...fields } = data;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.debugEntry.updateMany({
+      where: { id, userId },
+      data: {
+        ...fields,
+        // Nullable columns: a cleared field is absent, not an empty string.
+        errorMessage: errorMessage || null,
+        codeSnippet: codeSnippet || null,
+      },
+    });
+
+    if (count === 0) return null;
+
+    // `set: []` clears the join rows without touching the tags themselves —
+    // a tag dropped here stays available to every other entry using it.
+    await tx.debugEntry.update({
+      where: { id },
+      data: {
+        tags: {
+          set: [],
+          connectOrCreate: tags.map((name) => ({
+            where: { slug: toTagSlug(name) },
+            create: { name, slug: toTagSlug(name) },
+          })),
+        },
+      },
+    });
+
+    return tx.debugEntry.findUnique({ where: { id }, select: entryDetailSelect });
+  });
+
+  if (!updated) return null;
+
+  // Same flattening as `getEntryDetail` — the drawer wants collections, not joins.
+  return {
+    ...updated,
+    collections: updated.collections.map((row) => row.collection),
   };
 }
 

@@ -5,6 +5,7 @@ import { Check, Code2, Copy, FolderOpen, Pencil, Pin, Tag, Trash2 } from "lucide
 import type { LucideIcon } from "lucide-react";
 
 import { EntryDrawerSkeleton } from "@/components/entries/EntryDrawerSkeleton";
+import { EntryEditForm } from "@/components/entries/EntryEditForm";
 import { EntryStatusBadge } from "@/components/entries/EntryStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,14 @@ type DetailState =
 export function EntryDrawer({ entryId, onClose }: EntryDrawerProps) {
   const [detail, setDetail] = useState<DetailState | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  /**
+   * Which entry is being edited, rather than a bare boolean.
+   *
+   * Same trick as `detail` below: tagging the state by id means opening a
+   * different entry reads as "not editing" on its own, so nothing has to reset
+   * it from an effect.
+   */
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!entryId) return;
@@ -82,6 +91,7 @@ export function EntryDrawer({ entryId, onClose }: EntryDrawerProps) {
   const entry = current?.status === "loaded" ? current.entry : null;
   const error = current?.status === "failed" ? current.message : null;
   const copied = copiedId !== null && copiedId === entryId;
+  const isEditing = editingId !== null && editingId === entryId;
 
   const handleCopy = async () => {
     if (!entry) return;
@@ -139,34 +149,43 @@ export function EntryDrawer({ entryId, onClose }: EntryDrawerProps) {
           )}
         </header>
 
-        <div className="flex items-center gap-1 border-b border-border px-3 py-2">
-          <Button variant="ghost" size="sm" disabled={!entry}>
-            <Pin
-              className={cn(entry?.isPinned && "fill-current text-foreground")}
-            />
-            {entry?.isPinned ? "Pinned" : "Pin"}
-          </Button>
+        {/* Edit mode brings its own Save/Cancel bar, so this one steps aside. */}
+        {!isEditing && (
+          <div className="flex items-center gap-1 border-b border-border px-3 py-2">
+            <Button variant="ghost" size="sm" disabled={!entry}>
+              <Pin
+                className={cn(entry?.isPinned && "fill-current text-foreground")}
+              />
+              {entry?.isPinned ? "Pinned" : "Pin"}
+            </Button>
 
-          <Button variant="ghost" size="sm" disabled={!entry} onClick={handleCopy}>
-            {copied ? <Check /> : <Copy />}
-            {copied ? "Copied" : "Copy"}
-          </Button>
+            <Button variant="ghost" size="sm" disabled={!entry} onClick={handleCopy}>
+              {copied ? <Check /> : <Copy />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
 
-          <Button variant="ghost" size="sm" className="ml-auto" disabled={!entry}>
-            <Pencil />
-            Edit
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto"
+              disabled={!entry}
+              onClick={() => setEditingId(entryId)}
+            >
+              <Pencil />
+              Edit
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            disabled={!entry}
-          >
-            <Trash2 />
-            Delete
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={!entry}
+            >
+              <Trash2 />
+              Delete
+            </Button>
+          </div>
+        )}
 
         {error ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
@@ -174,6 +193,17 @@ export function EntryDrawer({ entryId, onClose }: EntryDrawerProps) {
           </p>
         ) : !entry ? (
           <EntryDrawerSkeleton />
+        ) : isEditing ? (
+          <EntryEditForm
+            entry={entry}
+            onSaved={(saved) => {
+              // The action returns the full detail, so view mode has the fresh
+              // entry without going back to `/api/entries/[id]` for it.
+              setDetail({ id: saved.id, status: "loaded", entry: saved });
+              setEditingId(null);
+            }}
+            onCancel={() => setEditingId(null)}
+          />
         ) : (
           <div className="flex flex-col">
             <Section label="Description">
