@@ -1,18 +1,23 @@
-# Current Feature
-
-<!-- Feature Name -->
+# Current Feature: Collections and Pinned Routes
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals & requirements -->
+- Add a `/collections` route reachable from the Collections link in the sidebar
+- Collections page lists every collection owned by the session user, 3 cards per row like the dashboard
+- Clicking a collection card opens that collection's entries in the same card layout
+- Add a `/pinned` route reachable from the Pinned link in the sidebar
+- Pinned page lists the session user's pinned entries, 3 cards per row like the dashboard
+- Pinned entry cards show the same information as the dashboard entry cards
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: @context/features/collections-pinned-spec.md
+- Reuse the existing dashboard entry card and grid components rather than duplicating them
+- All queries scoped by the authenticated user's `id` from the NextAuth session, reads and writes both
 
 ## History
 

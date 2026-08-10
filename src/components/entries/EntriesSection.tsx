@@ -10,10 +10,15 @@ import type { EntryListItem } from "@/lib/db/entries";
 interface EntriesSectionProps {
   /** Already ordered by the query — pinned first, then newest. */
   entries: EntryListItem[];
+  /** Shown in place of the grid when there is nothing to list. */
+  emptyMessage?: string;
 }
 
 /** Toolbar plus the paginated grid of entry cards. */
-export function EntriesSection({ entries }: EntriesSectionProps) {
+export function EntriesSection({
+  entries,
+  emptyMessage = "No debug entries yet. Your first one will show up here.",
+}: EntriesSectionProps) {
   const [page, setPage] = useState(1);
 
   const pageCount = Math.max(1, Math.ceil(entries.length / ENTRIES_PAGE_SIZE));
@@ -34,7 +39,7 @@ export function EntriesSection({ entries }: EntriesSectionProps) {
 
       {entries.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
-          No debug entries yet. Your first one will show up here.
+          {emptyMessage}
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
