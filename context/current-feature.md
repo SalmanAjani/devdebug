@@ -1,29 +1,18 @@
 # Current Feature
 
-Entry Drawer — Edit Mode
+<!-- Feature Name -->
 
 ## Status
 
-In Progress
+<!-- Not Started|In Progress|Completed -->
 
 ## Goals
 
-- Edit button (pencil) in the drawer action bar toggles the open drawer from view mode into inline edit mode — same drawer, fields become editable inputs
-- In edit mode the action bar is replaced with Save and Cancel; Cancel discards changes and returns to view mode
-- Save persists via server action, returns to view mode, refreshes the drawer data, and toasts on success or error
-- Editable fields: Title (text, required), Status (toggle, required), Description, Error Message, Root Cause, Solution, Code Snippet (textareas, optional), Tags (comma-separated input → tag array on save)
-- Collections are display-only in edit mode — managed separately later
-- `updateEntry(entryId, data)` server action in `src/actions/entries.ts` following the `{ success, data, error }` pattern: Zod validation, session via `auth()`, ownership check, then the query function
-- `updateEntry` query function in `src/lib/db/entries.ts` — disconnect all existing tags, connect-or-create the new ones, return the updated `EntryDetail`
+<!-- Goals & requirements -->
 
 ## Notes
 
-- Zod validates in the server action before hitting the database; return Zod errors in `{ success: false, error }` so the client can display them
-- No form library — controlled inputs with local state
-- Client-side guard: disable Save when the title is empty. Server-side Zod is the source of truth
-- Save returns the updated `EntryDetail` so the drawer refreshes without a second fetch
-- Call `router.refresh()` after save so the underlying card list reflects changes
-- Spec: [entry-drawer-edit-spec.md](context/features/entry-drawer-edit-spec.md)
+<!-- Any extra notes -->
 
 ## History
 
@@ -49,3 +38,4 @@ In Progress
 - **Rate Limiting for Auth** - Added fixed limiters on Auth routes to prevent abuse (Completed)
 - **Collections and Pinned Routes** - Setup collections and Pinned Debug Entries routes and pages (Completed)
 - **Debug Entry Drawer** - Slide-in detail panel opened from entry cards and Recently Viewed rows, fetched on click from /api/entries/[id] (Completed)
+- **Entry Drawer Edit Mode** - Inline edit in the drawer with updateEntry action and query, Zod validation, tag re-sync, and sonner toasts on project colour tokens (Completed)
