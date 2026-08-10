@@ -8,17 +8,24 @@ import { cn } from "@/lib/utils";
 
 interface EntryCardProps {
   entry: EntryListItem;
+  /** Opens the detail drawer. */
+  onOpen: (id: string) => void;
 }
 
 /**
- * Single debug entry card. Opening the detail panel lands in a later phase.
+ * Single debug entry card. Clicking anywhere on it opens the detail drawer.
+ *
+ * The trigger is a stretched overlay button rather than the card element
+ * itself: a `button` may only contain phrasing content, and the card has a
+ * heading and paragraphs. This keeps the markup and still leaves one
+ * focusable control per card, with Enter/Space handled by the browser.
  *
  * `min-w-0` matters: the card is a grid item, so without it the nowrap error
  * line sets a min-content width that pushes the grid past narrow viewports.
  */
-export function EntryCard({ entry }: EntryCardProps) {
+export function EntryCard({ entry, onOpen }: EntryCardProps) {
   return (
-    <article className="flex h-full min-w-0 flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-lg">
+    <article className="relative flex h-full min-w-0 flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-lg focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
       <div className="flex items-start justify-between gap-2">
         <EntryStatusBadge status={entry.status} />
 
@@ -66,6 +73,16 @@ export function EntryCard({ entry }: EntryCardProps) {
           </span>
         ))}
       </div>
+
+      {/* Last child so it layers over the card; `outline-none` because the
+          focus ring is drawn by the article's `focus-within`. */}
+      <button
+        type="button"
+        onClick={() => onOpen(entry.id)}
+        className="absolute inset-0 cursor-pointer rounded-xl outline-none"
+      >
+        <span className="sr-only">Open {entry.title}</span>
+      </button>
     </article>
   );
 }

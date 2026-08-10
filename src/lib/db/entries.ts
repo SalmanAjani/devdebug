@@ -73,6 +73,65 @@ export async function getEntriesByCollection(
   return rows.map((row) => row.entry);
 }
 
+/**
+ * Everything the detail drawer renders — the long text the card select leaves
+ * behind, plus the collections the entry belongs to.
+ */
+const entryDetailSelect = {
+  id: true,
+  title: true,
+  description: true,
+  errorMessage: true,
+  rootCause: true,
+  solution: true,
+  status: true,
+  codeSnippet: true,
+  codeLanguage: true,
+  isPinned: true,
+  createdAt: true,
+  technologies: {
+    select: { id: true, name: true, category: true },
+    orderBy: { name: "asc" },
+  },
+  tags: {
+    select: { id: true, slug: true },
+    orderBy: { name: "asc" },
+  },
+  collections: {
+    select: { collection: { select: { id: true, name: true } } },
+    orderBy: { addedAt: "desc" },
+  },
+} satisfies Prisma.DebugEntrySelect;
+
+type EntryDetailRow = Prisma.DebugEntryGetPayload<{
+  select: typeof entryDetailSelect;
+}>;
+
+/** The join rows are flattened before this leaves the query layer. */
+export type EntryDetail = Omit<EntryDetailRow, "collections"> & {
+  collections: { id: string; name: string }[];
+};
+
+/**
+ * One entry with everything the drawer shows, or null when it does not exist
+ * or belongs to someone else — the ownership check is in the `where`, so
+ * another user's id reads as missing rather than as an entry the caller may see.
+ */
+export async function getEntryDetail(id: string): Promise<EntryDetail | null> {
+  const entry = await prisma.debugEntry.findFirst({
+    where: { id, userId: await requireUserId() },
+    select: entryDetailSelect,
+  });
+
+  if (!entry) return null;
+
+  // The join table is an implementation detail — the drawer wants collections.
+  return {
+    ...entry,
+    collections: entry.collections.map((row) => row.collection),
+  };
+}
+
 /** The Recently Viewed rows are a single line each — far less than a card needs. */
 const recentlyViewedSelect = {
   id: true,
@@ -101,6 +160,20 @@ export async function getRecentlyViewedEntries(
   return entries.filter(
     (entry): entry is RecentlyViewedEntry => entry.viewedAt !== null
   );
+}
+
+/**
+ * Stamps `viewedAt` so the entry surfaces in Recently Viewed.
+ *
+ * `updateMany` rather than `update`: it scopes by `userId` in the same
+ * statement and returns a count instead of throwing when nothing matches, so
+ * an id the caller does not own is a no-op.
+ */
+export async function touchEntryViewedAt(id: string): Promise<void> {
+  await prisma.debugEntry.updateMany({
+    where: { id, userId: await requireUserId() },
+    data: { viewedAt: new Date() },
+  });
 }
 
 /** The user's total entries, for the sidebar badge. Counted in Postgres, not in JS. */
