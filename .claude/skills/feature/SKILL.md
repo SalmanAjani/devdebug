@@ -20,7 +20,7 @@ current-feature.md has these sections:
 - `## Status` - Not Started | In Progress | Complete
 - `## Goals` - Bullet points of what success looks like
 - `## Notes` - Additional context, constraints, or details from spec
-- `## History` - Completed features (append only)
+- `## History` - Completed features (Only mention feature created, max 1-2 lines) (append only)
 
 ## Task
 
@@ -31,6 +31,7 @@ Execute the requested action: $ARGUMENTS
 | `load` | Load a feature spec or inline description |
 | `start` | Begin implementation, create branch |
 | `review` | Check goals met, code quality |
+| `test` | Check for testable logic for server actions and utilities |
 | `explain` | Document what changed and why |
 | `complete` | Commit, push, merge, reset |
 
