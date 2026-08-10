@@ -1,18 +1,25 @@
-# Current Feature
-
-<!-- Feature Name -->
+# Current Feature: Debug Entry Drawer
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+Completed
 
 ## Goals
 
-<!-- Goals & requirements -->
+- Right-side slide-in drawer (shadcn Sheet) that opens when clicking a debug entry card — this is the entry detail view, no separate page
+- Works on the dashboard, collections and pinned pages
+- Action bar with Pin, Copy, Edit (pencil icon) and Delete (trash icon, right-aligned)
+- Client wrapper component to hold drawer state, since the pages are server components
+- Full entry detail fetched on click via `/api/entries/[id]` — no page navigation, feels snappy
+- Query function lives in `src/lib/db/entries.ts`; the API route calls it behind an auth check
+- Skeleton/loading state in the drawer while the detail fetch is in flight
 
 ## Notes
 
-<!-- Any extra notes -->
+- Card data (title, description, tags, etc.) stays server-fetched as it is today; only the full
+  detail (description, error message, root cause, solution, etc.) is fetched on click.
+- Visual reference: `context/screenshots/dashboard-ui-drawer.png`
+- Source spec: `context/features/entry-drawer-spec.md`
 
 ## History
 

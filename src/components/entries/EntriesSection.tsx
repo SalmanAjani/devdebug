@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { EntryCard } from "@/components/entries/EntryCard";
+import { EntryDrawer } from "@/components/entries/EntryDrawer";
 import { EntryToolbar } from "@/components/entries/EntryToolbar";
 import { ENTRIES_PAGE_SIZE } from "@/lib/constants/entry";
 import type { EntryListItem } from "@/lib/db/entries";
@@ -14,12 +15,19 @@ interface EntriesSectionProps {
   emptyMessage?: string;
 }
 
-/** Toolbar plus the paginated grid of entry cards. */
+/**
+ * Toolbar plus the paginated grid of entry cards.
+ *
+ * Also the client boundary the detail drawer needs: the pages that render this
+ * are server components, so the open-entry state lives here and every page
+ * using the grid — dashboard, collection, pinned — gets the drawer with it.
+ */
 export function EntriesSection({
   entries,
   emptyMessage = "No debug entries yet. Your first one will show up here.",
 }: EntriesSectionProps) {
   const [page, setPage] = useState(1);
+  const [openEntryId, setOpenEntryId] = useState<string | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(entries.length / ENTRIES_PAGE_SIZE));
   const startIndex = (page - 1) * ENTRIES_PAGE_SIZE;
@@ -44,10 +52,15 @@ export function EntriesSection({
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleEntries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
+            <EntryCard key={entry.id} entry={entry} onOpen={setOpenEntryId} />
           ))}
         </div>
       )}
+
+      <EntryDrawer
+        entryId={openEntryId}
+        onClose={() => setOpenEntryId(null)}
+      />
     </section>
   );
 }
